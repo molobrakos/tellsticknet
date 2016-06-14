@@ -1,4 +1,4 @@
-def decode(data):
+def decode(data, args=None):
     """
     https://github.com/telldus/telldus/blob/master/telldus-core/service/ProtocolFineoffset.cpp
 
