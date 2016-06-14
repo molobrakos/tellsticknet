@@ -34,6 +34,7 @@ def discover(timeout=DISCOVERY_TIMEOUT):
 
                 _LOGGER.info("Found %s device with firmware %s at %s",
                              product, firmware, address)
+
                 if product != PRODUCT_TELLSTICK_NET:
                     _LOGGER.info("Unsupported product %s", product)
                 elif int(firmware) < MIN_FIRMWARE_VERSION:
