@@ -1,2 +1,4 @@
 #!/bin/sh
+# linting of all code
+
 tox -e lint
