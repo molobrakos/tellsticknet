@@ -33,7 +33,7 @@ def discover(timeout=DISCOVERY_TIMEOUT):
                 (product, mac, code, firmware) = entry
 
                 _LOGGER.info("Found %s device with firmware %s at %s",
-                    product, firmware, address)
+                             product, firmware, address)
                 if product != PRODUCT_TELLSTICK_NET:
                     _LOGGER.info("Unsupported product %s", product)
                 elif int(firmware) < MIN_FIRMWARE_VERSION:
