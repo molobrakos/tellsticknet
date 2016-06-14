@@ -18,8 +18,9 @@ _LOGGER = logging.getLogger(__name__)
 try:
     import coloredlogs
     coloredlogs.install(level=LOG_LEVEL,
-                        fmt=LOGFMT,
-                        datefmt=DATEFMT)
+                        stream=stdout,
+                        datefmt=DATEFMT,
+                        fmt=LOGFMT)
 except:
     _LOGGER.debug("no color log")
     logging.basicConfig(level=LOG_LEVEL,
@@ -49,7 +50,9 @@ def parse_stdin():
             # assume we have date + raw data
             timestamp, line = line.split()
             timestamp = int(parse_isoformat(timestamp).timestamp())
-            print(to_json(decode_packet(line, lastUpdated=timestamp)))
+            packet = decode_packet(line)
+            packet.update(lastUpdated=timestamp)
+            print(to_json(packet))
         else:
             print(to_json(decode_packet(line)))
 
@@ -72,6 +75,9 @@ def print_event_stream():
 
     if argv[-1] == "raw":
         stream = map(prepend_timestamp, controller.packets())
+    elif argv[-1] == "measurements":
+        # one measurement per line
+        pass
     else:
         stream = controller.values()
 
