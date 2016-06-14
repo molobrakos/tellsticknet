@@ -219,9 +219,9 @@ def _decode_protocoldata(protocol, data):
     except:
         SRC_URL = ("https://github.com/telldus/telldus/"
                    "tree/master/telldus-core/service")
-        _LOGGER.error("can not decode protocol %s, packet <%s> "
-                      "missing or broken _decode in %s "
-                      "check %s for protocol implementation",
+        _LOGGER.error("Can not decode protocol %s, packet <%s> "
+                      "Missing or broken _decode in %s "
+                      "Check %s for protocol implementation",
                       protocol, data,
                       modname, SRC_URL)
         return dict()
