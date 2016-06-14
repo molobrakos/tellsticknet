@@ -57,7 +57,7 @@ def _encode_integer(d):
     >>> _encode_integer(3.3)
     'i3s'
     """
-    return "%s%x%s" % (TAG_INTEGER, d, TAG_END)
+    return "%s%x%s" % (TAG_INTEGER, int(d), TAG_END)
 
 
 def _encode_dict(d):
