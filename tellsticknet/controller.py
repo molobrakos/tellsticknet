@@ -7,6 +7,10 @@ from .protocol import encode_packet, decode_packet
 
 COMMAND_PORT = 42314
 TIMEOUT = timedelta(seconds=5)
+
+# re-register ourselves at the device at regular intervals.
+# shouldn't really be neccessary byt sometimes the connections seems
+# to get lost
 REGISTRATION_INTERVAL = timedelta(minutes=10)
 
 _LOGGER = logging.getLogger(__name__)
@@ -38,16 +42,13 @@ class Controller:
         https://github.com/telldus/tellstick-net/blob/master/
             firmware/tellsticknet.c"""
         packet = encode_packet(command, **args)
-        _LOGGER.debug("sending packet to controller %s:%d <%s>",
+        _LOGGER.debug("Sending packet to controller %s:%d <%s>",
                       self._address, COMMAND_PORT, packet)
         sock.sendto(packet, (self._address, COMMAND_PORT))
 
-    def send(self, sock, what):
-        self._send(sock, "send")
-
     def _register(self, sock):
         """ register self at controller """
-        _LOGGER.info("registering self as listener for device at %s",
+        _LOGGER.info("Registering self as listener for device at %s",
                      self._address)
         try:
             self._send(sock, "reglistener")
@@ -83,7 +84,7 @@ class Controller:
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             sock.setblocking(1)
             sock.settimeout(TIMEOUT.seconds)
-            _LOGGER.debug("listening for signals from %s", self._address)
+            _LOGGER.debug("Listening for signals from %s", self._address)
             while not self._stop:
                 packet = self._recv_packet(sock)
                 if packet is not None:
@@ -91,21 +92,27 @@ class Controller:
 
     def values(self):
         for packet in self.packets():
+
             if packet is None:
                 continue  # timeout
+
             packet = decode_packet(packet, lastUpdated=int(time()))
-            _LOGGER.debug("got packet %s", packet)
+            _LOGGER.debug("Got packet %s", packet)
+
             sensor_id = (  # controller/client-id,
-                packet["sensorId"])
+                packet["sensorId"]
+            )
+
             if sensor_id in self._sensors:
                 self._sensors[sensor_id] = packet
-                _LOGGER.debug("updated state for sensor %s", sensor_id)
+                _LOGGER.debug("Updated state for sensor %s", sensor_id)
                 # signal state change
             else:
                 self._sensors[sensor_id] = packet
-                _LOGGER.info("discovered new sensor %s", sensor_id)
+                _LOGGER.info("Discovered new sensor %s", sensor_id)
                 # signal discovery
-            _LOGGER.debug("returning packet %s", packet)
+
+            _LOGGER.debug("Returning packet %s", packet)
             #  from pprint import pprint
             #  pprint(self._sensors)
             yield packet
