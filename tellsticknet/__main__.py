@@ -10,7 +10,7 @@ from tellsticknet.controller import discover
 
 from json import dumps as to_json
 
-LOGFMT = "%(asctime)s %(levelname)5s (%(threadName)s) [%(name)s]  %(message)s"
+LOGFMT = "%(asctime)s %(levelname)5s (%(threadName)s) [%(name)s] %(message)s"
 DATEFMT = "%y-%m-%d %H:%M.%S"
 LOG_LEVEL = logging.INFO
 _LOGGER = logging.getLogger(__name__)
