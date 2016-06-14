@@ -156,12 +156,36 @@ def _decode_integer(packet):
 
     >>> _decode_integer("i4711s")
     (18193, '')
+
+    >>> _decode_integer("i0s")
+    (0, '')
+
+    >>> _decode_integer("i-3s")
+    (-3, '')
+
+    >>> _decode_integer("i03s") # invalid according to specification
+    Traceback (most recent call last):
+        ...
+    RuntimeError
+
+    >>> _decode_integer("i-0s") # invalid according to specification
+    Traceback (most recent call last):
+        ...
+    RuntimeError
+
+    >>> _decode_integer("i0000000000s") # invalid according to specification
+    Traceback (most recent call last):
+        ...
+    RuntimeError
+
     """
     _expect(packet[0] == TAG_INTEGER)
     packet = packet[len(TAG_INTEGER):]
     end = packet.find(TAG_END)
-    _expect(end > 1)
+    _expect(end > 0)
     val = packet[:end]
+    _expect(val[0] != "0" or len(val) == 1)
+    _expect(val[0] != "-" or val[1] != "0")
     return int(val, 16), packet[end + len(TAG_END):]
 
 
@@ -206,7 +230,7 @@ def _decode_any(packet):
         return _decode_string(packet)
 
 
-def _decode_protocoldata(protocol, data):
+def _decode_protocoldata(protocol, data, args):
     """
     dynamic lookup of the protocol implementation
     """
@@ -215,16 +239,16 @@ def _decode_protocoldata(protocol, data):
         modname = "tellsticknet.protocols.%s" % protocol
         module = importlib.import_module(modname)
         func = getattr(module, "decode")
-        return func(data)
+        return func(data, args)
     except:
         SRC_URL = ("https://github.com/telldus/telldus/"
                    "tree/master/telldus-core/service")
-        _LOGGER.error("Can not decode protocol %s, packet <%s> "
-                      "Missing or broken _decode in %s "
-                      "Check %s for protocol implementation",
-                      protocol, data,
-                      modname, SRC_URL)
-        return dict()
+        _LOGGER.exception("Can not decode protocol %s, packet <%s> "
+                          "Missing or broken _decode in %s "
+                          "Check %s for protocol implementation",
+                          protocol, data,
+                          modname, SRC_URL)
+        return None
 
 
 def _decode_command(packet):
@@ -236,7 +260,7 @@ def _decode_command(packet):
     return command, args
 
 
-def decode_packet(packet, **add_attrs):
+def decode_packet(packet):
     """
     decode a packet
 
@@ -260,11 +284,9 @@ def decode_packet(packet, **add_attrs):
             raise NotImplementedError()
         protocol = args["protocol"]
         data = args["data"]
-        data = _decode_protocoldata(protocol, data)
+        data = _decode_protocoldata(protocol, data, args)
+        args.update(data)
+        return args
     except:
+        _LOGGER.exception("failed to decode packet, skipping: %s", packet)
         return None
-
-    args.update(data)
-    args.update(add_attrs)
-
-    return args
