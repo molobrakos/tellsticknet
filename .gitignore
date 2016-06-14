@@ -1,3 +1,5 @@
 .tox
 *.egg-info
 .cache
+*.log
+.tmp
