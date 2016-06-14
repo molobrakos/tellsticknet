@@ -96,7 +96,8 @@ class Controller:
             if packet is None:
                 continue  # timeout
 
-            packet = decode_packet(packet, lastUpdated=int(time()))
+            packet = decode_packet(packet)
+            packet.update(lastUpdated=int(time()))
             _LOGGER.debug("Got packet %s", packet)
 
             sensor_id = (  # controller/client-id,
