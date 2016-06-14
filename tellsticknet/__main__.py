@@ -17,14 +17,15 @@ _LOGGER = logging.getLogger(__name__)
 
 try:
     import coloredlogs
-    coloredlogs.install(level=LOG_LEVEL)
+    coloredlogs.install(level=LOG_LEVEL,
+                        fmt=LOGFMT,
+                        datefmt=DATEFMT)
 except:
     _LOGGER.debug("no color log")
-
-logging.basicConfig(level=LOG_LEVEL,
-                    stream=stderr,
-                    datefmt=DATEFMT,
-                    format=LOGFMT)
+    logging.basicConfig(level=LOG_LEVEL,
+                        stream=stderr,
+                        datefmt=DATEFMT,
+                        format=LOGFMT)
 
 
 def parse_isoformat(s):
