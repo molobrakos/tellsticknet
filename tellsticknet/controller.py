@@ -100,18 +100,35 @@ class Controller:
             packet.update(lastUpdated=int(time()))
             _LOGGER.debug("Got packet %s", packet)
 
-            sensor_id = (  # controller/client-id,
-                packet["sensorId"]
-            )
+            if "sensorId" in packet:
+                sensor_id = (  # controller/client-id,
+                    packet["sensorId"]
+                )
 
-            if sensor_id in self._sensors:
-                self._sensors[sensor_id] = packet
-                _LOGGER.debug("Updated state for sensor %s", sensor_id)
-                # signal state change
-            else:
-                self._sensors[sensor_id] = packet
-                _LOGGER.info("Discovered new sensor %s", sensor_id)
-                # signal discovery
+                if sensor_id in self._sensors:
+                    self._sensors[sensor_id] = packet
+                    _LOGGER.debug("Updated state for sensor %s", sensor_id)
+                    # signal state change
+                else:
+                    self._sensors[sensor_id] = packet
+                    _LOGGER.info("Discovered new sensor %s", sensor_id)
+                    # signal discovery
+
+            elif all(key in packet for key in ("house", "unit")):
+                _LOGGER.debug("Updated state for contoller")
+                controller_id = frozenset(  # combine "house" and "unit" as id
+                    {key: value for key, value in packet.items()
+                     if key in ("house", "unit")}.items()
+                )
+                if controller_id in self._sensors:
+                    self._sensors[controller_id] = packet
+                    _LOGGER.debug("Updated state for contoller %s",
+                                  controller_id)
+                    # signal state change
+                else:
+                    self._sensors[controller_id] = packet
+                    _LOGGER.info("Discovered new controller %s", controller_id)
+                    # signal discovery
 
             _LOGGER.debug("Returning packet %s", packet)
             #  from pprint import pprint
