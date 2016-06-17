@@ -12,7 +12,7 @@ from json import dumps as to_json
 
 LOGFMT = "%(asctime)s %(levelname)5s (%(threadName)s) [%(name)s] %(message)s"
 DATEFMT = "%y-%m-%d %H:%M.%S"
-LOG_LEVEL = logging.INFO
+LOG_LEVEL = logging.DEBUG
 _LOGGER = logging.getLogger(__name__)
 
 try:
@@ -47,10 +47,12 @@ def parse_stdin():
     for line in stdin.readlines():
         line = line.strip()
         if " " in line:
-            # assume we have date + raw data
+            # assume we have date + raw data separated by space
             timestamp, line = line.split()
             timestamp = int(parse_isoformat(timestamp).timestamp())
             packet = decode_packet(line)
+            if packet is None:
+                continue
             packet.update(lastUpdated=timestamp)
             print(to_json(packet))
         else:
@@ -76,8 +78,7 @@ def print_event_stream():
     if argv[-1] == "raw":
         stream = map(prepend_timestamp, controller.packets())
     elif argv[-1] == "measurements":
-        # one measurement per line
-        pass
+        stream = controller.measurements()
     else:
         stream = controller.values()
 
