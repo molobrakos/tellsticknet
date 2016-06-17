@@ -4,9 +4,9 @@ https://developer.telldus.com/doxygen/html/TellStickNet.html
 """
 
 import logging
-from collections import OrderedDict
 _LOGGER = logging.getLogger(__name__)
 
+from collections import OrderedDict
 
 TAG_INTEGER = "i"
 TAG_DICT = "h"
@@ -113,6 +113,9 @@ def encode_packet(command, **args):
 
     >>> encode_packet("hello", foo="x")
     b'5:helloh3:foo1:xs'
+
+    >>> encode_packet("hello", data=dict(number=7))
+    b'5:helloh4:datah6:numberi7sss'
     """
     res = _encode_string(command)
     if args:
@@ -173,18 +176,19 @@ def _decode_integer(packet):
         ...
     RuntimeError
 
-    >>> _decode_integer("i0000000000s") # invalid according to specification
-    Traceback (most recent call last):
-        ...
-    RuntimeError
-
+    # this is invalid according to specification but seems to be
+    # generated anyway
+    >>> _decode_integer("i0000000000s") 
+    (0, '')
     """
     _expect(packet[0] == TAG_INTEGER)
     packet = packet[len(TAG_INTEGER):]
     end = packet.find(TAG_END)
     _expect(end > 0)
     val = packet[:end]
-    _expect(val[0] != "0" or len(val) == 1)
+    # disabled check since i0000000000s seems to be present
+    # but invalid according to specification
+    # _expect(val[0] != "0" or len(val) == 1)
     _expect(val[0] != "-" or val[1] != "0")
     return int(val, 16), packet[end + len(TAG_END):]
 
@@ -243,11 +247,13 @@ def _decode_protocoldata(protocol, data, args):
     except:
         SRC_URL = ("https://github.com/telldus/telldus/"
                    "tree/master/telldus-core/service")
+
         _LOGGER.exception("Can not decode protocol %s, packet <%s> "
                           "Missing or broken _decode in %s "
                           "Check %s for protocol implementation",
                           protocol, data,
                           modname, SRC_URL)
+        exit(-1)
         return None
 
 
@@ -273,12 +279,9 @@ def decode_packet(packet):
     A:fineoffset4:datai488029FF9Ass"
     >>> decode_packet(packet)["data"]["temp"]
     4.1
-    """
-
-    if isinstance(packet, bytes):
-        packet = packet.decode("ascii")
-
+    """   
     try:
+        print(packet)
         command, args = _decode_command(packet)
         if command != "RawData":
             raise NotImplementedError()
@@ -289,4 +292,6 @@ def decode_packet(packet):
         return args
     except:
         _LOGGER.exception("failed to decode packet, skipping: %s", packet)
-        return None
+        exit(-1)
+        return
+
