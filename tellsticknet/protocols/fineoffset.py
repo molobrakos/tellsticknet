@@ -6,7 +6,7 @@ def decode(data, args=None):
     2.6
     """
 
-    data = "%x" % int(data)
+    data = "%010x" % int(data)
     data = data[:-2]
     humidity = int(data[-2:], 16)
 
