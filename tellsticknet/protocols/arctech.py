@@ -1,7 +1,8 @@
+from . import nexa, waveman, sartano
+
 import logging
 _LOGGER = logging.getLogger(__name__)
 
-from . import nexa, waveman, sartano
 
 def decode(data, args):
     print("ok")
@@ -22,4 +23,3 @@ def encode(what):
     (len(protocol), protocol, len(model), model, house, unit, method)
     """
     pass
-

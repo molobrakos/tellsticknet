@@ -4,6 +4,7 @@ _LOGGER = logging.getLogger(__name__)
 
 lastArctecCodeSwitchWasTurnOff = False
 
+
 def decode(data, args):
     method = data & 0xF00
     method >>= 8
@@ -15,11 +16,11 @@ def decode(data, args):
     house = data & 0xF
 
     if house > 16 or unit < 1 or unit > 16:
-	# not waveman
+        # not waveman
         _LOGGER.debug("Not Waveman")
         return
 
-    house = chr(house + ord('A')) # house from A to P
+    house = chr(house + ord('A'))  # house from A to P
 
     global lastArctecCodeSwitchWasTurnOff
 
@@ -28,9 +29,9 @@ def decode(data, args):
         # probably a stray turnon or bell
         # (perhaps: only certain time interval since last,
         # check that it's the same house/unit... Will lose
-	# one turnon/bell, but it's better than the alternative...
+        # one turnon/bell, but it's better than the alternative...
         return
-    	
+
     if method == 6:
         lastArctecCodeSwitchWasTurnOff = True
 
@@ -40,11 +41,11 @@ def decode(data, args):
                house=house)
 
     if method == 0:
-        ret.update(unit = unit,
-                   method = "turnoff")
+        ret.update(unit=unit,
+                   method="turnoff")
     elif method == 14:
-        ret.update(unit = unit,
-                   method = "turnon")
+        ret.update(unit=unit,
+                   method="turnon")
     else:
         _LOGGER.debug("Not Waveman")
         return

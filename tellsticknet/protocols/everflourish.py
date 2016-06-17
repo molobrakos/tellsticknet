@@ -2,12 +2,12 @@ import logging
 _LOGGER = logging.getLogger(__name__)
 
 # https://github.com/telldus/telldus/blob/95f93cd6d316a910c5d4d2d518f772e43b7caa20/telldus-core/tests/service/ProtocolEverflourishTest.cpp
-#CPPUNIT_ASSERT_EQUAL_MESSAGE(
+# CPPUNIT_ASSERT_EQUAL_MESSAGE(
 #    "Everflourish 4242:3 ON",
 #    std::string("class:command;protocol:everflourish;model:selflearning;house:4242;unit:3;method:turnon;"),
 #    d->protocol->decodeData(ControllerMessage("protocol:everflourish;data:0x424A6F;"))
-#);
-#CPPUNIT_ASSERT_EQUAL_MESSAGE(
+# );
+# CPPUNIT_ASSERT_EQUAL_MESSAGE(
 #    "Everflourish 5353:4 OFF",
 #    std::string("class:command;protocol:everflourish;model:selflearning;house:5353;unit:4;method:turnoff;"),
 #    d->protocol->decodeData(ControllerMessage("protocol:everflourish;data:0x53A7E0;"))

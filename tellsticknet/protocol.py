@@ -3,10 +3,11 @@ encode/and decode protocol as described in
 https://developer.telldus.com/doxygen/html/TellStickNet.html
 """
 
+from collections import OrderedDict
+
 import logging
 _LOGGER = logging.getLogger(__name__)
 
-from collections import OrderedDict
 
 TAG_INTEGER = "i"
 TAG_DICT = "h"
@@ -180,7 +181,7 @@ def _decode_integer(packet):
 
     # this is invalid according to specification but seems to be
     # generated anyway
-    >>> _decode_integer("i0000000000s") 
+    >>> _decode_integer("i0000000000s")
     (0, '')
     """
     _expect(packet[0] == TAG_INTEGER)
@@ -255,7 +256,7 @@ def _decode_protocoldata(protocol, data, args):
                           "Check %s for protocol implementation",
                           protocol, data,
                           modname, SRC_URL)
-        #exit(-1)
+        # exit(-1)
         return None
 
 
@@ -281,9 +282,9 @@ def decode_packet(packet):
     A:fineoffset4:datai488029FF9Ass"
     >>> decode_packet(packet)["data"]["temp"]
     4.1
-    """   
+    """
     try:
-        #print(packet)
+        # print(packet)
         command, args = _decode_command(packet)
         if command != "RawData":
             raise NotImplementedError()
@@ -294,6 +295,5 @@ def decode_packet(packet):
         return args
     except:
         _LOGGER.exception("failed to decode packet, skipping: %s", packet)
-        #exit(-1)
+        # exit(-1)
         return
-

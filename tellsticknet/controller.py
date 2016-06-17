@@ -118,7 +118,6 @@ class Controller:
             #  pprint(self._sensors)
             yield packet
 
-
         def measurements(self):
             """
             Transform the stream of values as
@@ -128,7 +127,6 @@ class Controller:
             { sensor: xyz, measurement: entity_y, value: value:y }
             """
             pass
-
 
     def async_listen(self, event_callback):
         """Listen forever for network events in a separate thread"""
