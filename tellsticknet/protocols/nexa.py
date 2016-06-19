@@ -1,6 +1,7 @@
 import logging
 _LOGGER = logging.getLogger(__name__)
 
+# https://github.com/telldus/telldus/blob/master/telldus-core/service/ProtocolNexa.cpp
 
 def decode_selflearning(data, args):
     house = data & 0xFFFFFFC0
