@@ -1,6 +1,7 @@
 import logging
 _LOGGER = logging.getLogger(__name__)
 
+# https://github.com/telldus/telldus/blob/master/telldus-core/service/ProtocolSartano.cpp
 
 def decode(data_in, args):
     data = 0
