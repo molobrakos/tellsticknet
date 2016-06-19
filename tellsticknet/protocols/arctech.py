@@ -3,6 +3,7 @@ from . import nexa, waveman, sartano
 import logging
 _LOGGER = logging.getLogger(__name__)
 
+# https://github.com/telldus/telldus/blob/master/telldus-core/service/Protocol.cpp
 
 def decode(data, args):
     print("ok")
