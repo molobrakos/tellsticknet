@@ -92,7 +92,7 @@ class Controller:
                 if packet is not None:
                     yield packet
 
-    def values(self):
+    def events(self):
         for packet in self.packets():
 
             if packet is None:
@@ -139,7 +139,7 @@ class Controller:
 
         def measurements(self):
             """
-            Transform the stream of values as
+            Transform the stream of events as
             { sensor: xyz, data: { entity_x: value_x, entity_y: value_y } }
             to:
             { sensor: xyz, measurement: entity_x, value: value_x }
@@ -151,7 +151,7 @@ class Controller:
         """Listen forever for network events in a separate thread"""
 
         def listener(self):
-            for packet in self.values():
+            for packet in self.events():
                 event_callback(packet)
 
         from threading import Thread

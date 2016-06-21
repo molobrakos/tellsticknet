@@ -80,7 +80,7 @@ def print_event_stream():
     elif argv[-1] == "measurements":
         stream = controller.measurements()
     else:
-        stream = controller.values()
+        stream = controller.events()
 
     for packet in stream:
         print(packet)
