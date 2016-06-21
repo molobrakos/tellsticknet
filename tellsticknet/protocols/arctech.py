@@ -5,6 +5,7 @@ _LOGGER = logging.getLogger(__name__)
 
 # https://github.com/telldus/telldus/blob/master/telldus-core/service/Protocol.cpp
 
+
 def decode(data, args):
     print("ok")
     return nexa.decode(data, args) or \
