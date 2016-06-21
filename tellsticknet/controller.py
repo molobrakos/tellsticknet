@@ -113,8 +113,7 @@ class Controller:
                     self._sensors[sensor_id] = packet
                     _LOGGER.info("Discovered new sensor %s", sensor_id)
                     # signal discovery
-
-            elif all(key in packet for key in ("house", "unit")):
+            elif "house" and "unit" in packet:
                 _LOGGER.debug("Updated state for contoller")
                 controller_id = frozenset(  # combine "house" and "unit" as id
                     {key: value for key, value in packet.items()
