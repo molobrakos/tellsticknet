@@ -137,15 +137,16 @@ class Controller:
             #  pprint(self._controllers)
             yield packet
 
-        def measurements(self):
-            """
-            Transform the stream of events as
-            { sensor: xyz, data: { entity_x: value_x, entity_y: value_y } }
-            to:
-            { sensor: xyz, measurement: entity_x, value: value_x }
-            { sensor: xyz, measurement: entity_y, value: value:y }
-            """
-            pass
+    def measurements(self):
+        """
+        Transform the stream of events from
+        { sensor: xyz, data: { entity_x: value_x, entity_y: value_y } }
+        to:
+        { sensor: xyz, measurement: entity_x, value: value_x }
+        { sensor: xyz, measurement: entity_y, value: value:y }
+        i.e. one measurment per sensor kind and reading
+        """
+        pass
 
     def async_listen(self, event_callback):
         """Listen forever for network events in a separate thread"""
