@@ -31,7 +31,9 @@ class Controller:
         self._address = address
         self._last_registration = None
         self._stop = False
+
         self._sensors = {}
+        self._controllers = {}
 
     def stop(self):
         self._stop = True
@@ -119,19 +121,20 @@ class Controller:
                     {key: value for key, value in packet.items()
                      if key in ("house", "unit")}.items()
                 )
-                if controller_id in self._sensors:
-                    self._sensors[controller_id] = packet
+                if controller_id in self._controllers:
+                    self._controllers[controller_id] = packet
                     _LOGGER.debug("Updated state for contoller %s",
                                   controller_id)
                     # signal state change
                 else:
-                    self._sensors[controller_id] = packet
+                    self._controllers[controller_id] = packet
                     _LOGGER.info("Discovered new controller %s", controller_id)
                     # signal discovery
 
             _LOGGER.debug("Returning packet %s", packet)
             #  from pprint import pprint
             #  pprint(self._sensors)
+            #  pprint(self._controllers)
             yield packet
 
         def measurements(self):
