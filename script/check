@@ -1,0 +1,5 @@
+#!/bin/sh
+# test and lint
+
+BASEPATH=$(readlink -f "$(dirname -- "$0")")
+$BASEPATH/lint && $BASEPATH/test
