@@ -42,7 +42,8 @@ def parse_stdin():
     """Parse protocol data passed on stdin, previously captured
 
     example to print all captured sensor id:s
-    cat /tmp/packets.txt  | ./script/parse | jq ".sensorId" | sort | uniq
+    script/listen > /tmp/packets.log
+    cat /tmp/packets.log  | ./script/parse | jq ".sensorId" | sort | uniq
     """
     for line in stdin.readlines():
         line = line.strip()
