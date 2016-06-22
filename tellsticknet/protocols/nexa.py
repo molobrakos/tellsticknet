@@ -4,7 +4,10 @@ _LOGGER = logging.getLogger(__name__)
 # https://github.com/telldus/telldus/blob/master/telldus-core/service/ProtocolNexa.cpp
 
 
-def decode_selflearning(data, args):
+def decode_selflearning(packet):
+
+    data = packet.pop("data")
+
     house = data & 0xFFFFFFC0
     house >>= 6
 
@@ -27,7 +30,8 @@ def decode_selflearning(data, args):
     else:
         raise RuntimeError("invalid method", method)
 
-    return dict(_class="command",
+    return dict(packet,
+                _class="command",
                 house=house,
                 unit=unit,
                 group=group,
@@ -36,7 +40,9 @@ def decode_selflearning(data, args):
 lastArctecCodeSwitchWasTurnOff = False
 
 
-def decode_codeswitch(data, args):
+def decode_codeswitch(packet):
+
+    data = packet.pop("data")
 
     # print("data %x" % data)
     method = data & 0xF00
@@ -71,7 +77,8 @@ def decode_codeswitch(data, args):
     if method == 6:
         lastArctecCodeSwitchWasTurnOff = True
 
-    ret = dict(_class="command",
+    ret = dict(packet,
+               _class="command",
                protocol="arctech",
                model="codeswitch",
                house=house)
@@ -92,34 +99,10 @@ def decode_codeswitch(data, args):
     return ret
 
 
-def decode(data, args):
-    if args["model"] == "selflearning":
-        return decode_selflearning(data, args)
-    elif args["model"] == "codeswitch":
-        return decode_codeswitch(data, args)
+def decode(packet):
+    if packet["model"] == "selflearning":
+        return decode_selflearning(packet)
+    elif packet["model"] == "codeswitch":
+        return decode_codeswitch(packet)
     else:
         raise NotImplementedError()
-
-
-# tests from https://github.com/telldus/telldus/blob/
-# 95f93cd6d316a910c5d4d2d518f772e43b7caa20/telldus-core/tests/service/ProtocolNexaTest.cpp
-# CPPUNIT_ASSERT_EQUAL_MESSAGE(
-# "Arctech Codeswitch A1 ON",
-# std::string("class:command;protocol:arctech;model:codeswitch;house:A;unit:1;method:turnon;"),
-#  d->protocol->decodeData(ControllerMessage("protocol:arctech;model:codeswitch;data:0xE00;"))
-#      );
-# 	CPPUNIT_ASSERT_EQUAL_MESSAGE(
-# 		"Arctech Codeswitch A1 OFF",
-# 		std::string("class:command;protocol:arctech;model:codeswitch;house:A;unit:1;method:turnoff;"),
-# 		d->protocol->decodeData(ControllerMessage("protocol:arctech;model:codeswitch;data:0x600;"))
-# 	);
-# 	CPPUNIT_ASSERT_EQUAL_MESSAGE(
-# 		"Arctech Selflearning 1329110 1 ON",
-# 		std::string("class:command;protocol:arctech;model:selflearning;house:1329110;unit:1;group:0;method:turnon;"),
-# 		d->protocol->decodeData(ControllerMessage("protocol:arctech;model:selflearning;data:0x511F590;")#)
-# 	);
-# 	CPPUNIT_ASSERT_EQUAL_MESSAGE(
-# 		"Arctech Selflearning 1329110 1 OFF",
-# 		std::string("class:command;protocol:arctech;model:selflearning;house:1329110;unit:1;group:0;method:turnoff;"),
-# 		d->protocol->decodeData(ControllerMessage("protocol:arctech;model:selflearning;data:0x511F580;")#)
-# 	);
