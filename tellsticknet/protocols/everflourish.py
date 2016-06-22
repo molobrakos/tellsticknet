@@ -8,14 +8,14 @@ def decode(packet):
     """
     data = packet.pop("data")
 
-    house = data & 0xFFFC00
+    house = data & 0xfffc00
     house >>= 10
 
     unit = data & 0x300
     unit >>= 8
     unit += 1
 
-    method = data & 0xF
+    method = data & 0xf
 
     if house > 16383 or unit < 1 or unit > 4:
         # not everflourish
@@ -28,7 +28,8 @@ def decode(packet):
     elif method == 10:
         method = "learn"
     else:
-        raise RuntimeError("invalid method", method)
+        _LOGGER.debug("Not Everflourish")
+        return
 
     return dict(packet,
                 _class="command",
