@@ -3,8 +3,6 @@ encode/and decode protocol as described in
 https://developer.telldus.com/doxygen/html/TellStickNet.html
 """
 
-from collections import OrderedDict
-
 import logging
 _LOGGER = logging.getLogger(__name__)
 
@@ -82,7 +80,11 @@ def _encode_dict(d):
     RuntimeError
     """
     _expect(isinstance(d, dict))
-    d = OrderedDict(sorted(d.items()))  # deterministic (for testing)
+
+    # make it deterministic (for testing)
+    from collections import OrderedDict
+    d = OrderedDict(sorted(d.items()))
+
     return "%s%s%s" % (
         TAG_DICT,
         "".join(_encode_any(x)
@@ -206,6 +208,7 @@ def _decode_dict(packet):
     """
     rest = packet[1:]
     d = {}
+
     while rest[0] != TAG_END:
         k, rest = _decode_string(rest)
         v, rest = _decode_any(rest)
@@ -237,24 +240,40 @@ def _decode_any(packet):
         return _decode_string(packet)
 
 
-def _decode_protocoldata(protocol, data, args):
+def _fixup(d):
+    """
+    Convenience method to let the protocol implementation use the key '_class' 
+    instead of 'class', which is a reserved word, as an argument to the dict 
+    constructor
+
+    >>> _fixup(dict(a=1, _b=2)) == {'a': 1, 'b': 2}
+    True
+    """
+    for k in d:
+        if k.startswith("_"):
+            d[k[1:]] = d.pop(k)
+    return d
+
+
+def _decode(**packet):
     """
     dynamic lookup of the protocol implementation
     """
-    import importlib
+
+    protocol = packet["protocol"]
     try:
         modname = "tellsticknet.protocols.%s" % protocol
+        import importlib
         module = importlib.import_module(modname)
         func = getattr(module, "decode")
-        return func(data, args)
+        return _fixup(func(packet.copy()))
     except:
         SRC_URL = ("https://github.com/telldus/telldus/"
                    "tree/master/telldus-core/service")
-
         _LOGGER.exception("Can not decode protocol %s, packet <%s> "
                           "Missing or broken _decode in %s "
                           "Check %s for protocol implementation",
-                          protocol, data,
+                          protocol, packet["data"],
                           modname, SRC_URL)
         # exit(-1)
         return None
@@ -285,14 +304,10 @@ def decode_packet(packet):
     """
     try:
         # print(packet)
-        command, args = _decode_command(packet)
+        command, packet = _decode_command(packet)
         if command != "RawData":
             raise NotImplementedError()
-        protocol = args["protocol"]
-        data = args["data"]
-        data = _decode_protocoldata(protocol, data, args)
-        args.update(data)
-        return args
+        return _decode(**packet)
     except:
         _LOGGER.exception("failed to decode packet, skipping: %s", packet)
         # exit(-1)
