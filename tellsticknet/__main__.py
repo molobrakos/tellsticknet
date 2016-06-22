@@ -22,7 +22,7 @@ try:
                         datefmt=DATEFMT,
                         fmt=LOGFMT)
 except:
-    _LOGGER.debug("no color log")
+    _LOGGER.debug("no colored logs. pip install coloredlogs?")
     logging.basicConfig(level=LOG_LEVEL,
                         stream=stderr,
                         datefmt=DATEFMT,
