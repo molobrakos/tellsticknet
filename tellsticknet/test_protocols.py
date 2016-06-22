@@ -33,7 +33,7 @@ def _parse(s):
     items = filter(len, items)  # remove empty
     items = [s.split(":") for s in items]
     return {k: _maybe_int(v) for k, v in items}
-  
+
 
 def _assert_equal(template, packet):
     """
@@ -59,6 +59,7 @@ def test_everflourish():
                   "house:5353;unit:4;method:turnoff;",
                   "protocol:everflourish;data:0x53A7E0;")
 
+
 def test_nexa():
     """
     Test cases directly adapted from original sources
@@ -79,6 +80,7 @@ def test_nexa():
     _assert_equal("class:command;protocol:arctech;model:selflearning;"
                   "house:1329110;unit:1;group:0;method:turnoff;",
                   "protocol:arctech;model:selflearning;data:0x511F580;")
+
 
 def test_sartano():
     """
