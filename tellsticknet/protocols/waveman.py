@@ -6,7 +6,9 @@ _LOGGER = logging.getLogger(__name__)
 lastArctecCodeSwitchWasTurnOff = False
 
 
-def decode(data, args):
+def decode(packet):
+    data = packet.pop("data")
+
     method = data & 0xF00
     method >>= 8
 
@@ -36,7 +38,8 @@ def decode(data, args):
     if method == 6:
         lastArctecCodeSwitchWasTurnOff = True
 
-    ret = dict(_class="command",
+    ret = dict(packet,
+               _class="command",
                protocol="waveman",
                model="codeswitch",
                house=house)
