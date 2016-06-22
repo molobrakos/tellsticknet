@@ -6,11 +6,15 @@ _LOGGER = logging.getLogger(__name__)
 # https://github.com/telldus/telldus/blob/master/telldus-core/service/Protocol.cpp
 
 
-def decode(data, args):
-    print("ok")
-    return nexa.decode(data, args) or \
-        waveman.decode(data, args) or \
-        sartano.decode(data, args)
+def decode(packet):
+    """
+    Try each protocol until success
+    We must copy packet since "data" key will be popped by
+    protocol implementations
+    """
+    return nexa.decode(packet.copy()) or \
+        waveman.decode(packet.copy()) or \
+        sartano.decode(packet.copy())
 
 
 def encode(what):
