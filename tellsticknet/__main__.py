@@ -49,11 +49,12 @@ def parse_stdin():
         if " " in line:
             # assume we have date + raw data separated by space
             timestamp, line = line.split()
-            timestamp = int(parse_isoformat(timestamp).timestamp())
+            timestamp = parse_isoformat(timestamp)
+            lastUpdated = int(timestamp.timestamp())
             packet = decode_packet(line)
             if packet is None:
                 continue
-            packet.update(lastUpdated=timestamp)
+            packet.update(lastUpdated=lastUpdated, time=timestamp.isoformat())
             print(to_json(packet))
         else:
             print(to_json(decode_packet(line)))
