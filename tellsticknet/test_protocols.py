@@ -36,7 +36,6 @@ def _parse(s):
     items = filter(len, items)  # remove empty
     items = [s.split(":") for s in items]
     items = dict(items)
-    items = OrderedDict(sorted(items.items()))  # make it deterministic
     items = {k: _maybe_int(v) for k, v in items.items()}
     return items
 
