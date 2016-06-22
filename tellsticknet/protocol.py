@@ -242,8 +242,8 @@ def _decode_any(packet):
 
 def _fixup(d):
     """
-    Convenience method to let the protocol implementation use the key '_class' 
-    instead of 'class', which is a reserved word, as an argument to the dict 
+    Convenience method to let the protocol implementation use the key '_class'
+    instead of 'class', which is a reserved word, as an argument to the dict
     constructor
 
     >>> _fixup(dict(a=1, _b=2)) == {'a': 1, 'b': 2}
