@@ -3,6 +3,8 @@ from .protocol import _decode
 
 def _maybe_int(s):
     """
+    Convert any number encoded as string to int
+
     >>> _maybe_int("abc")
     'abc'
     >>> _maybe_int("11")
