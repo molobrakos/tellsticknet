@@ -1,11 +1,11 @@
-def decode(data, args=None):
+def decode(packet):
     """
     https://github.com/telldus/telldus/blob/master/telldus-core/service/ProtocolFineoffset.cpp
 
-    >>> decode(0x48801aff05)["data"]["temp"]
+    >>> decode(dict(data=0x48801aff05))["data"]["temp"]
     2.6
     """
-
+    data = packet.pop("data")
     data = "%010x" % int(data)
     data = data[:-2]
     humidity = int(data[-2:], 16)
@@ -22,11 +22,13 @@ def decode(data, args=None):
     id = int(data, 16) & 0xff
 
     if humidity <= 100:
-        return dict(model="temperaturehumidity",
+        return dict(packet,
+                    model="temperaturehumidity",
                     sensorId=id,
                     data=dict(humidity=humidity,
                               temp=temp))
     else:
-        return dict(model="temperature",
+        return dict(packet,
+                    model="temperature",
                     sensorId=id,
                     data=dict(temp=temp))
