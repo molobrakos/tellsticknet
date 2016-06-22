@@ -35,8 +35,7 @@ def _parse(s):
     items = s.split(";")
     items = filter(len, items)  # remove empty
     items = [s.split(":") for s in items]
-    items = dict(items)
-    items = {k: _maybe_int(v) for k, v in items.items()}
+    items = {k: _maybe_int(v) for k, v in items}
     return items
 
 
