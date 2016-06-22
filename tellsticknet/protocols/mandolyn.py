@@ -1,11 +1,11 @@
-def decode(data, args=None):
+def decode(packet):
     """
     https://github.com/telldus/telldus/blob/master/telldus-core/service/ProtocolMandolyn.cpp
 
-    >>> decode(0x134039c3)["data"]["temp"]
+    >>> decode(dict(data=0x134039c3))["data"]["temp"]
     7.8
     """
-
+    data = packet["data"]
     value = int(data)
     value >>= 1
     temp = ((value & 0x7fff) - 6400) / 128
@@ -21,6 +21,7 @@ def decode(data, args=None):
     value >>= 2
     house = value & 0xf
 
-    return dict(sensorId=house*10+channel,
+    return dict(packet,
+                sensorId=house*10+channel,
                 data=dict(temp=temp,
                           humidity=humidity))
