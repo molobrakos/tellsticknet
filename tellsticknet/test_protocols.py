@@ -29,15 +29,11 @@ def _parse(s):
     'class': 'command', 'unit': 1, 'model': 'codeswitch'}
     True
     """
-    # make it deterministic (for testing)
-    from collections import OrderedDict
-
     items = s.split(";")
     items = filter(len, items)  # remove empty
     items = [s.split(":") for s in items]
-    items = {k: _maybe_int(v) for k, v in items}
-    return items
-
+    return {k: _maybe_int(v) for k, v in items}
+  
 
 def _assert_equal(template, packet):
     """
