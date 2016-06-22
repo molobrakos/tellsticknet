@@ -305,7 +305,6 @@ def decode_packet(packet):
     >>> packet = "7:RawDatah8:protocolC:everflourish4:dataiA1CC92ss"
     """
     try:
-        # print(packet)
         command, args = _decode_command(packet)
         if command != "RawData":
             raise NotImplementedError()
