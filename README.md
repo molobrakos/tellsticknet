@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/molobrakos/tellsticknet.svg?branch=master)](https://travis-ci.org/molobrakos/tellsticknet)
 
-Interface with a Tellstick Net device on the local network bypassing the Telldus Live online service.
+Interface with a Tellstick Net device on the local network bypassing the Telldus Live online service (events are still passed through the Tellstick Net service).
 
 Use cases
 - The Tellstick Net device is on a poor connection, such as a mobile broadband subscription in the summer house
@@ -32,7 +32,7 @@ Listen for received packets and print parsed values
 
 Listen for raw packets and dump to file
 ```bash
-> ./script/listen raw 2>/dev/null | tee packets.txt
+> ./script/listen raw 2>/dev/null | tee packets.log
 2016-04-01T11:39:15 7:RawDatah5:class6:sensor8:protocolA:fineoffset4:datai41B03B4DAAss
 2016-04-01T11:39:17 7:RawDatah5:class6:sensor8:protocol8:mandolyn5:model13:temperaturehumidity4:datai13413986ss
 (...)
@@ -40,7 +40,7 @@ Listen for raw packets and dump to file
 
 Parse previously dumped packets
 ```bash
-> cat packets.txt | ./script/parse
+> cat packets.log | ./script/parse
 {"class": "sensor", "data": {"temp": 5.9, "humidity": 77}, "model": "temperaturehumidity", "sensorId": 27, "lastUpdated": 1459503555, "protocol": "fineoffset"}
 {"class": "sensor", "data": {"temp": 7.5, "humidity": 65}, "model": "temperaturehumidity", "sensorId": 11, "lastUpdated": 1459503557, "protocol": "mandolyn"}
 (...)
@@ -48,7 +48,7 @@ Parse previously dumped packets
 ```
 Display all sensors
 ```bash
-> cat packets.txt | ./script/parse | jq ".sensorId" | sort -n | uniq
+> cat packets.log | ./script/parse | jq ".sensorId" | sort -n | uniq
 11
 27
 135
@@ -57,7 +57,7 @@ Display all sensors
 
 Export temperature readings as csv
 ```bash
-> cat packets.txt | ./script/parse | jq '[.sensorId, .lastUpdated, .data["temp"]] | @csv'
+> cat packets.log | ./script/parse | jq '[.sensorId, .lastUpdated, .data["temp"]] | @csv'
 "136,1459504835,3.6"
 "104,1459504848,18.6"
 (...)
