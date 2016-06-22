@@ -249,9 +249,10 @@ def _fixup(d):
     >>> _fixup(dict(a=1, _b=2)) == {'a': 1, 'b': 2}
     True
     """
-    for k in d:
-        if k.startswith("_"):
-            d[k[1:]] = d.pop(k)
+    if d:
+        for k in d:
+            if k.startswith("_"):
+                d[k[1:]] = d.pop(k)
     return d
 
 
@@ -275,8 +276,7 @@ def _decode(**packet):
                           "Check %s for protocol implementation",
                           protocol, packet["data"],
                           modname, SRC_URL)
-        # exit(-1)
-        return None
+        raise
 
 
 def _decode_command(packet):
@@ -301,14 +301,14 @@ def decode_packet(packet):
     A:fineoffset4:datai488029FF9Ass"
     >>> decode_packet(packet)["data"]["temp"]
     4.1
+
+    >>> packet = "7:RawDatah8:protocolC:everflourish4:dataiA1CC92ss"
     """
     try:
         # print(packet)
-        command, packet = _decode_command(packet)
+        command, args = _decode_command(packet)
         if command != "RawData":
             raise NotImplementedError()
-        return _decode(**packet)
+        return _decode(**args)
     except:
         _LOGGER.exception("failed to decode packet, skipping: %s", packet)
-        # exit(-1)
-        return
