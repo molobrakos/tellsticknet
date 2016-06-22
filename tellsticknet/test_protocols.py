@@ -46,13 +46,11 @@ def _assert_equal(template, packet):
     assert template == packet
 
 
-def test_protocols():
+def test_everflourish():
     """
     Test cases directly adapted from original sources
+    https://github.com/telldus/telldus/blob/master/telldus-core/tests/service/ProtocolEverflourishTest.cpp
     """
-
-    # https://github.com/telldus/telldus/blob/master/telldus-core/tests/service/ProtocolEverflourishTest.cpp
-
     _assert_equal("class:command;protocol:everflourish;model:selflearning;"
                   "house:4242;unit:3;method:turnon;",
                   "protocol:everflourish;data:0x424A6F;")
@@ -61,8 +59,11 @@ def test_protocols():
                   "house:5353;unit:4;method:turnoff;",
                   "protocol:everflourish;data:0x53A7E0;")
 
-    # https://github.com/telldus/telldus/blob/master/telldus-core/tests/service/ProtocolNexaTest.cpp
-
+def test_nexa():
+    """
+    Test cases directly adapted from original sources
+    https://github.com/telldus/telldus/blob/master/telldus-core/tests/service/ProtocolNexaTest.cpp
+    """
     _assert_equal("class:command;protocol:arctech;model:codeswitch;house:A;"
                   "unit:1;method:turnon;",
                   "protocol:arctech;model:codeswitch;data:0xE00;")
@@ -79,8 +80,11 @@ def test_protocols():
                   "house:1329110;unit:1;group:0;method:turnoff;",
                   "protocol:arctech;model:selflearning;data:0x511F580;")
 
-    # https://github.com/telldus/telldus/blob/master/telldus-core/tests/service/ProtocolSartanoTest.cpp
-
+def test_sartano():
+    """
+    Test cases directly adapted from original sources
+    https://github.com/telldus/telldus/blob/master/telldus-core/tests/service/ProtocolSartanoTest.cpp
+    """
     _assert_equal("class:command;protocol:sartano;model:codeswitch;"
                   "code:0101010101;method:turnon;",
                   "protocol:arctech;model:codeswitch;data:0x955;")
