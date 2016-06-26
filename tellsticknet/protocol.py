@@ -62,6 +62,7 @@ def _encode_integer(d):
 def _encode_dict(d):
     """
     encode a dict
+    (keys will be put in sorted order)
 
     >>> _encode_dict({"foo": "bar", "baz": 42})
     'h3:bazi2as3:foo3:bars'
@@ -81,14 +82,10 @@ def _encode_dict(d):
     """
     _expect(isinstance(d, dict))
 
-    # make it deterministic (for testing)
-    from collections import OrderedDict
-    d = OrderedDict(sorted(d.items()))
-
     return "%s%s%s" % (
         TAG_DICT,
         "".join(_encode_any(x)
-                for keyval in d.items()
+                for keyval in sorted(d.items())
                 for x in keyval),
         TAG_END)
 
