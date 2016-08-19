@@ -7,7 +7,9 @@ def decode(packet):
     >>> decode(dict(data=0x201F242450443BDD))["data"]["humidity"]
     45.0
     """
-    
+
+    if packet["model"] != 6701:
+        raise NotImplementedError("The Oregon model %i is not implemented." % packet["model"])
 
     data = packet["data"]
     value = int(data)
