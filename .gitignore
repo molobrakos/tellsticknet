@@ -3,3 +3,5 @@
 .cache
 *.log
 .tmp
+__pycache__
+.idea
