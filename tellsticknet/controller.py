@@ -95,10 +95,10 @@ class Controller:
     def events(self):
         for packet in self.packets():
 
+            packet = decode_packet(packet)
             if packet is None:
                 continue  # timeout
 
-            packet = decode_packet(packet)
             packet.update(lastUpdated=int(time()))
             _LOGGER.debug("Got packet %s", packet)
 
