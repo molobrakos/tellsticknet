@@ -6,8 +6,11 @@ DISCOVERY_PORT = 30303
 DISCOVERY_ADDRESS = '<broadcast>'
 DISCOVERY_PAYLOAD = b"D"
 DISCOVERY_TIMEOUT = timedelta(seconds=5)
-PRODUCT_TELLSTICK_NET = "TellStickNet"
-MIN_FIRMWARE_VERSION = 17
+SUPPORTED_PRODUCTS = ['TellStickNet',
+                      'TellstickZnetLite',
+                      'TellstickZnet',
+                      'TellstickNetV2']
+MIN_TELLSTICKNET_FIRMWARE_VERSION = 17
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -35,9 +38,11 @@ def discover(timeout=DISCOVERY_TIMEOUT):
                 _LOGGER.info("Found %s device with firmware %s at %s",
                              product, firmware, address)
 
-                if product != PRODUCT_TELLSTICK_NET:
+                if not any(product in device
+                           for device in SUPPORTED_PRODUCTS):
                     _LOGGER.info("Unsupported product %s", product)
-                elif int(firmware) < MIN_FIRMWARE_VERSION:
+                elif (product == 'TellStickNet' and
+                      int(firmware) < MIN_TELLSTICK_FIRMWARE_VERSION):
                     _LOGGER.info("Unsupported firmware version: %s", firmware)
                 else:
                     # _LOGGER.debug("Activation code %s", code)
