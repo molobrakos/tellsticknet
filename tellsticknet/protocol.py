@@ -37,7 +37,7 @@ def _encode_string(s):
         ...
     TypeError: object of type 'int' has no len()
     """
-    return "%x%s%s" % (len(s), TAG_SEP, s)
+    return "%X%s%s" % (len(s), TAG_SEP, s)
 
 
 def _encode_integer(d):
