@@ -303,8 +303,11 @@ def decode_packet(packet):
     """
     try:
         command, args = _decode_command(packet)
-        if command != "RawData":
+        if command == 'zwaveinfo':
+            _LOGGER.info('Got Z-Wave info packet')
+        elif command == "RawData":
+            return _decode(**args)
+        else:
             raise NotImplementedError()
-        return _decode(**args)
     except:
         _LOGGER.exception("failed to decode packet, skipping: %s", packet)
