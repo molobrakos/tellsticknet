@@ -8,6 +8,7 @@ DISCOVERY_PAYLOAD = b"D"
 DISCOVERY_TIMEOUT = timedelta(seconds=5)
 SUPPORTED_PRODUCTS = ['TellStickNet',
                       'TellstickZnetLite',
+                      'TellstickZnetLiteV2',
                       'TellstickZnet',
                       'TellstickNetV2']
 MIN_TELLSTICKNET_FIRMWARE_VERSION = 17
