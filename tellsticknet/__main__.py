@@ -72,10 +72,7 @@ def print_event_stream():
     controllers = discover()
 
     # for now only care about one controller
-    controller = next(controllers, None)
-    if controller is None:
-        print("no tellstick devices found")
-        exit(0)
+    controller = next(controllers, None) or exit('no tellstick devices found')
 
     if argv[-1] == "raw":
         stream = map(prepend_timestamp, controller.packets())
