@@ -18,7 +18,7 @@ _LOGGER = logging.getLogger(__name__)
 try:
     import coloredlogs
     coloredlogs.install(level=LOG_LEVEL,
-                        stream=stdout,
+                        stream=stderr,
                         datefmt=DATEFMT,
                         fmt=LOGFMT)
 except:
