@@ -246,12 +246,8 @@ def _fixup(d):
     >>> _fixup(dict(a=1, _b=2)) == {'a': 1, 'b': 2}
     True
     """
-    if d:
-        for k in d:
-            if k.startswith("_"):
-                d[k[1:]] = d.pop(k)
-    return d
-
+    return {(k[1:] if k.startswith('_') else k) : v
+            for k, v in d.items() } if d else None
 
 def _decode(**packet):
     """
