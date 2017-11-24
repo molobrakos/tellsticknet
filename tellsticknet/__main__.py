@@ -49,7 +49,7 @@ def parse_stdin():
         line = line.strip()
         if " " in line:
             # assume we have date + raw data separated by space
-            timestamp, line = line.split()
+            timestamp, line = line.split(' ', 1)
             timestamp = parse_isoformat(timestamp)
             lastUpdated = int(timestamp.timestamp())
             packet = decode_packet(line)
