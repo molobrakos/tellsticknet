@@ -27,7 +27,7 @@ def _encode_string(s):
     '5:hello'
 
     >>> _encode_string("hellothere")
-    'a:hellothere'
+    'A:hellothere'
 
     >>> _encode_string("")
     '0:'
