@@ -37,6 +37,7 @@ def decode_selflearning(packet):
                 group=group,
                 method=method)
 
+
 lastArctecCodeSwitchWasTurnOff = False
 
 

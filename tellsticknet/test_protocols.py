@@ -16,7 +16,7 @@ def _maybe_int(s):
     """
     try:
         return int(s, 0)
-    except:
+    except ValueError:
         return s
 
 

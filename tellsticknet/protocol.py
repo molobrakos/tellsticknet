@@ -246,8 +246,9 @@ def _fixup(d):
     >>> _fixup(dict(a=1, _b=2)) == {'a': 1, 'b': 2}
     True
     """
-    return {(k[1:] if k.startswith('_') else k) : v
-            for k, v in d.items() } if d else None
+    return {(k[1:] if k.startswith('_') else k): v
+            for k, v in d.items()} if d else None
+
 
 def _decode(**packet):
     """
@@ -261,7 +262,7 @@ def _decode(**packet):
         module = importlib.import_module(modname)
         func = getattr(module, "decode")
         return _fixup(func(packet.copy()))
-    except:
+    except ImportError:
         SRC_URL = ("https://github.com/telldus/telldus/"
                    "tree/master/telldus-core/service")
         _LOGGER.exception("Can not decode protocol %s, packet <%s> "
@@ -305,5 +306,5 @@ def decode_packet(packet):
             return _decode(**args)
         else:
             raise NotImplementedError()
-    except:
+    except NotImplementedError:
         _LOGGER.warning("failed to decode packet, skipping: %s", packet)

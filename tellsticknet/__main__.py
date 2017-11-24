@@ -21,7 +21,7 @@ try:
                         stream=stderr,
                         datefmt=DATEFMT,
                         fmt=LOGFMT)
-except:
+except ImportError:
     _LOGGER.debug("no colored logs. pip install coloredlogs?")
     logging.basicConfig(level=LOG_LEVEL,
                         stream=stderr,
