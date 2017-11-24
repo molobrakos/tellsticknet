@@ -306,4 +306,4 @@ def decode_packet(packet):
         else:
             raise NotImplementedError()
     except:
-        _LOGGER.exception("failed to decode packet, skipping: %s", packet)
+        _LOGGER.warning("failed to decode packet, skipping: %s", packet)
