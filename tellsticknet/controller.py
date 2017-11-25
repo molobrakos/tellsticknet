@@ -148,12 +148,3 @@ class Controller:
         """
         pass
 
-    def async_listen(self, event_callback):
-        """Listen forever for network events in a separate thread"""
-
-        def listener(self):
-            for packet in self.events():
-                event_callback(packet)
-
-        from threading import Thread
-        Thread(target=listener).run()
