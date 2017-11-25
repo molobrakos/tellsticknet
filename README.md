@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/molobrakos/tellsticknet.svg?branch=master)](https://travis-ci.org/molobrakos/tellsticknet)
 
-Interface with a Tellstick Net device on the local network bypassing the Telldus Live online service (events are still passed through the Tellstick Net service).
+Interface with a Tellstick Net device on the local network bypassing the Telldus Live cloud service (events are still passed through the Telldus Live cloud service).
 
 Use cases
 - The Tellstick Net device is on a poor connection, such as a mobile broadband subscription in the summer house
