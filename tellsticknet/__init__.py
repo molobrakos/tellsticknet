@@ -28,4 +28,4 @@ def async_listen(host, callback):
             callback(packet)
 
     from threading import Thread
-    Thread(target=listener).run()
+    Thread(target=listener).start()
