@@ -13,16 +13,15 @@ _LOGGER = logging.getLogger(__name__)
 def async_listen(host, callback):
 
     def listener():
-        nonlocal host
-        host = host or next(discover(), [None])[0]
+        h = host or next(discover(), [None])[0]
 
-        if not host:
+        if not h:
             _LOGGER.warning('No host to listen no')
             return
 
-        _LOGGER.debug('Listening to host %s', host)
+        _LOGGER.debug('Listening to host %s', h)
 
-        controller = Controller(host)
+        controller = Controller(h)
 
         for packet in controller.events():
             event_callback(packet)
