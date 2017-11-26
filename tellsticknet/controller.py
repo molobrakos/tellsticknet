@@ -147,4 +147,3 @@ class Controller:
         i.e. one measurment per sensor kind and reading
         """
         pass
-

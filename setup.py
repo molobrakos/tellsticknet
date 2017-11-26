@@ -13,10 +13,10 @@ setup(name='tellsticknet',
       maintainer_email='error.errorsson@gmail.com',
       keywords='tellstick',
       packages=['tellsticknet'],
-      long_description=(open('README.md').read() if exists('README.md') else ''),
-      install_requires=list(open('requirements.txt').read().strip().split('\n')),
+      long_description=(open('README.md').read()
+                        if exists('README.md') else ''),
+      install_requires=list(
+          open('requirements.txt').read().strip().split('\n')),
       scripts=[],
       extras_require={},
-      zip_safe=False,
-)
-
+      zip_safe=False)

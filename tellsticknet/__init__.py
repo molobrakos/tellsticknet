@@ -1,16 +1,17 @@
 """ """
 
 import sys
-assert sys.version_info >= (3, 0)
-
 import logging
 
-from .discovery import discover
-from .controller import Controller
+assert sys.version_info >= (3, 0)
 
 _LOGGER = logging.getLogger(__name__)
 
+
 def async_listen(host, callback):
+
+    from .discovery import discover
+    from .controller import Controller
 
     def listener():
         h = host or next(discover(), [None])[0]
@@ -24,7 +25,7 @@ def async_listen(host, callback):
         controller = Controller(h)
 
         for packet in controller.events():
-            event_callback(packet)
+            callback(packet)
 
     from threading import Thread
     Thread(target=listener).run()
