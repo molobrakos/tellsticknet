@@ -266,12 +266,13 @@ def _decode(**packet):
         packet = _fixup(func(packet.copy()))
 
         # convert data={temp=42, humidity=38} to
-        # data=[{name=temp, value=42},{name=humidity, valye=38}] 
-        packet['data'] = [
-            dict(name=name,
-                 value=value)
-            for name, value
-            in packet['data'].items()]
+        # data=[{name=temp, value=42},{name=humidity, valye=38}]
+        if 'data' in packet:
+            packet['data'] = [
+                dict(name=name,
+                     value=value)
+                for name, value
+                in packet['data'].items()]
 
         return packet
     except ImportError:
@@ -300,13 +301,13 @@ def decode_packet(packet):
 
     >>> packet = "7:RawDatah5:class6:sensor8:protocol\
     8:mandolyn5:model13:temperaturehumidity4:dataiAF1D466Bss"
-    >>> decode_packet(packet)["data"]["temp"]
-    20.4
+    >>> len(decode_packet(packet)["data"])
+    2
 
     >>> packet = "7:RawDatah5:class6:sensor8:protocol\
     A:fineoffset4:datai488029FF9Ass"
-    >>> decode_packet(packet)["data"]["temp"]
-    4.1
+    >>> len(decode_packet(packet)["data"])
+    1
 
     >>> packet = "7:RawDatah8:protocolC:everflourish4:dataiA1CC92ss"
     """
