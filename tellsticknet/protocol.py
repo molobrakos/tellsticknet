@@ -261,7 +261,19 @@ def _decode(**packet):
         import importlib
         module = importlib.import_module(modname)
         func = getattr(module, "decode")
-        return _fixup(func(packet.copy()))
+
+        # convert any _class=foo to class=foo
+        packet = _fixup(func(packet.copy()))
+
+        # convert data={temp=42, humidity=38} to
+        # data=[{name=temp, value=42},{name=humidity, valye=38}] 
+        packet['data'] = [
+            dict(name=name,
+                 value=value)
+            for name, value
+            in packet['data'].items()]
+
+        return packet
     except ImportError:
         SRC_URL = ("https://github.com/telldus/telldus/"
                    "tree/master/telldus-core/service")

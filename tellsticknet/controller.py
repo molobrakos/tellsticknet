@@ -131,7 +131,11 @@ class Controller:
                     _LOGGER.info("Discovered new controller %s", controller_id)
                     # signal discovery
 
-            _LOGGER.debug("Returning packet %s", packet)
+            #_LOGGER.debug("Returning packet %s", packet)
+            #  from pprint import pprint
+            #  pprint(self._sensors)
+            #  pprint(self._controllers)
+
             yield packet
 
     def measurements(self):
