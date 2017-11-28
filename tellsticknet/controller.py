@@ -45,36 +45,22 @@ class Controller:
                       self._address, COMMAND_PORT, packet)
         sock.sendto(packet, (self._address, COMMAND_PORT))
 
-    def _register(self, sock):
+    def _register_if_needed(self, sock):
         """ register self at controller """
+
+        if self._last_registration:
+            since_last_check = datetime.now() - self._last_registration
+            if since_last_check < REGISTRATION_INTERVAL:
+                return
+
         _LOGGER.info("Registering self as listener for device at %s",
                      self._address)
+
         try:
             self._send(sock, "reglistener")
             self._last_registration = datetime.now()
         except OSError:  # e.g. Network is unreachable
             # just retry
-            pass
-
-    def _registration_needed(self):
-        """Register self at controller"""
-        if self._last_registration is None:
-            return True
-        since_last_check = datetime.now() - self._last_registration
-        return since_last_check > REGISTRATION_INTERVAL
-
-    def _recv_packet(self, sock):
-        """Wait for a new packet from controller"""
-
-        if self._registration_needed():
-            self._register(sock)
-
-        try:
-            response, (address, port) = sock.recvfrom(1024)
-            if address != self._address:
-                return
-            return response.decode("ascii")
-        except (socket.timeout, OSError):
             pass
 
     def packets(self):
@@ -85,15 +71,20 @@ class Controller:
             sock.settimeout(TIMEOUT.seconds)
             _LOGGER.debug("Listening for signals from %s", self._address)
             while not self._stop:
-                packet = self._recv_packet(sock)
-                if packet is not None:
-                    yield packet
+                self._register_if_needed(sock)
+                try:
+                    response, (address, port) = sock.recvfrom(1024)
+                    if address != self._address:
+                        continue
+                    yield response.decode("ascii")
+                except (socket.timeout, OSError):
+                    pass
 
     def events(self):
         for packet in self.packets():
 
             packet = decode_packet(packet)
-            if packet is None:
+            if not packet:
                 continue  # timeout
 
             packet.update(lastUpdated=int(time()))
