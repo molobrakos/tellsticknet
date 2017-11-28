@@ -32,9 +32,6 @@ class Controller:
         self._last_registration = None
         self._stop = False
 
-        self._sensors = {}
-        self._controllers = {}
-
     def stop(self):
         self._stop = True
 
@@ -102,49 +99,4 @@ class Controller:
             packet.update(lastUpdated=int(time()))
             _LOGGER.debug("Got packet %s", packet)
 
-            if "sensorId" in packet:
-                sensor_id = (  # controller/client-id,
-                    packet["sensorId"]
-                )
-
-                if sensor_id in self._sensors:
-                    self._sensors[sensor_id] = packet
-                    _LOGGER.debug("Updated state for sensor %s", sensor_id)
-                    # signal state change
-                else:
-                    self._sensors[sensor_id] = packet
-                    _LOGGER.info("Discovered new sensor %s", sensor_id)
-                    # signal discovery
-            elif "house" and "unit" in packet:
-                _LOGGER.debug("Updated state for contoller")
-                controller_id = frozenset(  # combine "house" and "unit" as id
-                    {key: value for key, value in packet.items()
-                     if key in ("house", "unit")}.items()
-                )
-                if controller_id in self._controllers:
-                    self._controllers[controller_id] = packet
-                    _LOGGER.debug("Updated state for contoller %s",
-                                  controller_id)
-                    # signal state change
-                else:
-                    self._controllers[controller_id] = packet
-                    _LOGGER.info("Discovered new controller %s", controller_id)
-                    # signal discovery
-
-            #  _LOGGER.debug("Returning packet %s", packet)
-            #  from pprint import pprint
-            #  pprint(self._sensors)
-            #  pprint(self._controllers)
-
             yield packet
-
-    def measurements(self):
-        """
-        Transform the stream of events from
-        { sensor: xyz, data: { entity_x: value_x, entity_y: value_y } }
-        to:
-        { sensor: xyz, measurement: entity_x, value: value_x }
-        { sensor: xyz, measurement: entity_y, value: value:y }
-        i.e. one measurment per sensor kind and reading
-        """
-        pass
