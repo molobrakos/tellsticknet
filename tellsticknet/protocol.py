@@ -315,6 +315,7 @@ def decode_packet(packet):
         command, args = _decode_command(packet)
         if command == 'zwaveinfo':
             _LOGGER.info('Got Z-Wave info packet')
+            _LOGGER.debug('%s %s', command, args)
         elif command == "RawData":
             return _decode(**args)
         else:
