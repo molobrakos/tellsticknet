@@ -76,8 +76,6 @@ def print_event_stream():
 
     if argv[-1] == "raw":
         stream = map(prepend_timestamp, controller.packets())
-    elif argv[-1] == "measurements":
-        stream = controller.measurements()
     else:
         stream = controller.events()
 
