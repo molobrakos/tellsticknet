@@ -1,8 +1,30 @@
+# pylint: skip-file
 import logging
 _LOGGER = logging.getLogger(__name__)
 
 # https://github.com/telldus/telldus/blob/master/telldus-core/service/ProtocolNexa.cpp
+TURNON = 1
+TURNOFF = 2
 
+
+def methods(model):
+    _LOGGER.debug("Getting metods for Model: %s" , model)
+    if ( model == "selflearning-switch" ):
+        return "TURNON|TURNOFF"
+    elif ( model == "codeswitch" ):
+        return "TURNON|TURNOFF"
+    elif ( model == "selflearning-dimmmer" ):
+        return "TURNON|TURNOFF|DIM"
+
+def method(val):
+    _LOGGER.debug("Getting metod for val: %s" , val)
+    if val == TURNON:
+        method = 1
+    elif val == TURNOFF:
+        method = 0
+    else:
+        raise RuntimeError("invalid method", val)
+    return method
 
 def decode_selflearning(packet):
 
@@ -36,7 +58,6 @@ def decode_selflearning(packet):
                 unit=unit,
                 group=group,
                 method=method)
-
 
 lastArctecCodeSwitchWasTurnOff = False
 

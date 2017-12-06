@@ -1,3 +1,4 @@
+# pylint: skip-file
 from . import nexa, waveman, sartano
 
 import logging
@@ -15,6 +16,17 @@ def decode(packet):
     return nexa.decode(packet.copy()) or \
         waveman.decode(packet.copy()) or \
         sartano.decode(packet.copy())
+
+
+def methods(model):
+    return nexa.methods(model) or \
+        waveman.methods(model) or \
+        sartano.methods(model)
+
+def method(model):
+    return nexa.method(model) or \
+        waveman.method(model) or \
+        sartano.method(model)
 
 
 def encode(what):

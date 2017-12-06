@@ -1,5 +1,25 @@
+# pylint: skip-file
 import logging
 _LOGGER = logging.getLogger(__name__)
+
+def methods(model):
+    _LOGGER.debug("Getting metods for Model: %s" , model)
+    if ( model == "selflearning-switch" ):
+        return "TURNON|TURNOFF"
+    elif ( model == "codeswitch" ):
+        return "TURNON|TURNOFF"
+    elif ( model == "selflearning-dimmmer" ):
+        return "TURNON|TURNOFF|DIM"
+
+def method(val):
+    _LOGGER.debug("Getting metod for val: %s" , val)
+    if val == TURNON:
+        method = 1
+    elif val == TURNOFF:
+        method = 0
+    else:
+        raise RuntimeError("invalid method", val)
+    return method
 
 
 def decode(packet):
