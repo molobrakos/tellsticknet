@@ -57,7 +57,7 @@ class Protocol(object):
             func = getattr(self._module, "methods")
             self._methods = func(model)
             return self._methods
-        except:
+        except ImportError:
             """ passes if protocol is incomplete """
             _LOGGER.exception("Can not get methods for protocol %s" +
                               "model <%s> modname, %s",
@@ -70,7 +70,7 @@ class Protocol(object):
             func = getattr(self._module, "method")
             self._method = func(method)
             return self._method
-        except:
+        except ImportError:
             _LOGGER.exception("Can not get methods for protocol" +
                               "%s, modname, %s",
                               self._protocol, modname)

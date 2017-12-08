@@ -5,6 +5,7 @@ _LOGGER = logging.getLogger(__name__)
 # https://github.com/telldus/telldus/blob/master/telldus-core/service/ProtocolNexa.cpp
 TURNON = 1
 TURNOFF = 2
+lastArctecCodeSwitchWasTurnOff = False
 
 
 def methods(model):
@@ -60,8 +61,6 @@ def decode_selflearning(packet):
                 unit=unit,
                 group=group,
                 method=method)
-
-lastArctecCodeSwitchWasTurnOff = False
 
 
 def decode_codeswitch(packet):
