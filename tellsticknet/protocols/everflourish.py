@@ -2,17 +2,22 @@
 import logging
 _LOGGER = logging.getLogger(__name__)
 
+TURNON = 1
+TURNOFF = 2
+
+
 def methods(model):
-    _LOGGER.debug("Getting metods for Model: %s" , model)
-    if ( model == "selflearning-switch" ):
+    _LOGGER.debug("Getting metods for Model: %s", model)
+    if (model == "selflearning-switch"):
         return "TURNON|TURNOFF"
-    elif ( model == "codeswitch" ):
+    elif (model == "codeswitch"):
         return "TURNON|TURNOFF"
-    elif ( model == "selflearning-dimmmer" ):
+    elif (model == "selflearning-dimmmer"):
         return "TURNON|TURNOFF|DIM"
 
+
 def method(val):
-    _LOGGER.debug("Getting metod for val: %s" , val)
+    _LOGGER.debug("Getting metod for val: %s", val)
     if val == TURNON:
         method = 1
     elif val == TURNOFF:

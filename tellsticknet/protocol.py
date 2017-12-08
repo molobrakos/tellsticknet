@@ -13,6 +13,7 @@ TAG_LIST = "l"
 TAG_END = "s"
 TAG_SEP = ":"
 
+
 class Protocol(object):
     """ main object for encodeing and decodeing devices """
     def __init__(self, protocol=None):
@@ -43,7 +44,9 @@ class Protocol(object):
 
     def encode(self, command):
         """" encodes command with selcted protocol """
-        msg = {'protocol' : self._protocol, 'method' : self._method, 'model' : self._model}
+        msg = {'protocol': self._protocol,
+               'method': self._method,
+               'model': self._model}
         msg = {**msg, **self._params}
         return encode_packet(command, **msg)
 
@@ -56,7 +59,8 @@ class Protocol(object):
             return self._methods
         except:
             """ passes if protocol is incomplete """
-            _LOGGER.exception("Can not get methods for protocol %s, model <%s> modname, %s",
+            _LOGGER.exception("Can not get methods for protocol %s" +
+                              "model <%s> modname, %s",
                               self._protocol, self._model, modname)
 
     def varForMethod(self, method):
@@ -67,9 +71,11 @@ class Protocol(object):
             self._method = func(method)
             return self._method
         except:
-            _LOGGER.exception("Can not get methods for protocol %s, modname, %s",
+            _LOGGER.exception("Can not get methods for protocol" +
+                              "%s, modname, %s",
                               self._protocol, modname)
             raise
+
 
 def _expect(condition):
     if not condition:

@@ -10,7 +10,7 @@ TURNOFF = 2
 
 
 def method(val):
-    _LOGGER.debug("Getting metod for val: %s" , val)
+    _LOGGER.debug("Getting metod for val: %s", val)
     if val == TURNON:
         method = 14
     elif val == TURNOFF:
@@ -21,8 +21,9 @@ def method(val):
 
 
 def methods(model):
-    if ( model == "codeswitch"):
+    if (model == "codeswitch"):
         return "TURNON|TURNOFF"
+
 
 def decode(packet):
     data = packet.pop("data")

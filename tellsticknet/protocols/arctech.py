@@ -23,6 +23,7 @@ def methods(model):
         waveman.methods(model) or \
         sartano.methods(model)
 
+
 def method(model):
     return nexa.method(model) or \
         waveman.method(model) or \

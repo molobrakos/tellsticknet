@@ -9,7 +9,7 @@ TURNOFF = 2
 
 
 def method(val):
-    _LOGGER.debug("Getting metod for val: %s" , val)
+    _LOGGER.debug("Getting metod for val: %s", val)
     if val == TURNON:
         method = 1
     elif val == TURNOFF:
@@ -18,8 +18,9 @@ def method(val):
         raise RuntimeError("invalid method", val)
     return method
 
+
 def methods(model):
-    if ( model == "codeswitch"):
+    if (model == "codeswitch"):
         return "TURNON|TURNOFF"
 
 
