@@ -16,6 +16,7 @@ DOWN = 256
 STOP = 512
 RGBW = 1024
 THERMOSTAT = 2048
+GENRIC_METER =  4096"
 
 METHODSI = {
     TURNON: 'turnOn',
@@ -470,7 +471,7 @@ class Device(object):
             LUMINANCE: 'lum',
             DEW_POINT: 'dewp',
             BAROMETRIC_PRESSURE: 'barpress',
-            Device.GENRIC_METER: 'genmeter'
+            GENRIC_METER: 'genmeter'
         }
         return types.get(sensorType, 'unknown')
 
