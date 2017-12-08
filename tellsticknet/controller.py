@@ -46,16 +46,13 @@ class Controller:
         """ returns controller id """
         return self._id
 
-
     def address(self):
         """ retruns address """
         return self._address
 
-
     def port(self):
         """ return controller port """
         return self._port
-
 
     def load(self, settings):
         """ loads settnigs from config to contoller object """
@@ -67,13 +64,13 @@ class Controller:
             self._port = str(settings['port'])
         if 'address' in settings:
             self._address = settings['address']
-        self._LOGGER.debug("loaded controller: %s, id: %s, address: %s, port: %s",
+        self._LOGGER.debug("loaded controller: %s, " +
+                           "id: %s, address: %s, port: %s",
                            self._name, self._id, self._address, self._port)
 
     def ignored(self):
         """ retrun ignored """
         return self._ignored
-
 
     def iscontroller(self):
         """
@@ -81,16 +78,15 @@ class Controller:
         """
         return self._iscontroller
 
-
     def name(self):
         """ retruns name of controller """
-        return self._name if self._name is not None else 'Controller %i' % self._id
-
-
+        if self._name is not None:
+            return self._name
+        else:
+            return 'Controller %i' % self._id
 
     def stop(self):
         self._stop = True
-
 
     def _send(self, sock, command, **args):
         """Send a command to the controller
@@ -120,7 +116,6 @@ class Controller:
             # just retry
             pass
 
-
     def packets(self):
         """Listen forever for network events, yield stream of packets"""
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
@@ -137,7 +132,6 @@ class Controller:
                     yield response.decode("ascii")
                 except (socket.timeout, OSError):
                     pass
-
 
     def events(self):
         for packet in self.packets():
