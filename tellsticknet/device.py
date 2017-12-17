@@ -89,7 +89,7 @@ class Device(object):
         self._model = None
         self._state = TURNOFF
         self._stateValue = 'unde'
-        self._sensorValues = {}
+        self._sensorValues = None
         self._scale = None
         self._sensorId = None
         self._confirmed = True
@@ -290,8 +290,7 @@ class Device(object):
         """ returns sensor id """
         return self._sensorId
 
-    @staticmethod
-    def methods():
+    def methods(self):
         """
         Return the methods this supports.
         This is an or-ed in of device method flags.
@@ -299,7 +298,7 @@ class Device(object):
         Example:
         return TURNON | TURNOFF
         """
-        return 0
+        return self._methods or 0
 
     def name(self):
         """ returns name """
@@ -350,12 +349,26 @@ class Device(object):
         """ sets params """
         self._params = params
 
-    def setSensorValues(self, vals):
-        """ sets sensor values """
-        for values in vals:
-            for key, value in values.items():
-                self._LOGGER.debug("%s has value: %s", key, value)
-                self.setSensorValue(key, value, self._scale)
+    def setSensorValues(self, sensorValues, lastUpdated):
+        # this method just fills cached values, no signals or reports are sent
+        if lastUpdated == self.lastUpdated:
+            self._LOGGER.debug("lastUpdated %s is the same" +
+                               "as self.lastUpdated %s",
+                               lastUpdated, self.lastUpdated)
+            return False  # return false if same timestamp
+        else:
+            self._LOGGER.debug("lastUpdated %s is not self.lastUpdated" +
+                               "%s updating sensor",
+                               lastUpdated, self.lastUpdated)
+            self._sensorValues = []
+            for i, valueTypeFetch in enumerate(sensorValues):
+                self._sensorValues.append({
+                    'value': valueTypeFetch['value'],
+                    'scale': self._scale,
+                    'lastUpdated': lastUpdated,
+                    'name': valueTypeFetch['name']})
+            self.lastUpdated = lastUpdated
+            return True
 
     def setSensorValue(self, valueType, value, scale):
         """ sets sensor value """
@@ -383,6 +396,7 @@ class Device(object):
         if not found:
             self._sensorValues[valueType].append({'value': str(value),
                                                   'scale': scale,
+                                                  'name': valueType,
                                                   'lastUpdated': int(time.time(
                                                                     ))
                                                   })
