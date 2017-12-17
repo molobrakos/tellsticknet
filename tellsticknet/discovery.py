@@ -14,15 +14,18 @@ MIN_TELLSTICKNET_FIRMWARE_VERSION = 17
 _LOGGER = logging.getLogger(__name__)
 
 
-def discover(timeout=DISCOVERY_TIMEOUT):
-    """Scan network for Tellstick Net devices"""
+def discover(timeout=DISCOVERY_TIMEOUT, host=DISCOVERY_ADDRESS):
+    """Scan network for Tellstick Net devices
+    If host is set just run discover on specified
+    host
+    """
     _LOGGER.info("Discovering tellstick devices ...")
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.settimeout(timeout.seconds)
 
-        sock.sendto(DISCOVERY_PAYLOAD, (DISCOVERY_ADDRESS, DISCOVERY_PORT))
+        sock.sendto(DISCOVERY_PAYLOAD, (host, DISCOVERY_PORT))
 
         while True:
             try:
@@ -71,6 +74,10 @@ if __name__ == '__main__':
     from sys import argv
     if argv[-1] == "mock":
         mock()
+    elif argv[-1] is not None:
+        controllers = list(discover(host=argv[-1]))
+        from pprint import pprint
+        pprint(controllers)
     else:
         controllers = list(discover())
         from pprint import pprint
