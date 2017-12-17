@@ -10,7 +10,7 @@ lastArctecCodeSwitchWasTurnOff = False
 
 def methods(model):
     _LOGGER.debug("Getting metods for Model: %s", model)
-    if (model == "selflearning-switch"):
+    if (model == "selflearning-switch") or (model == "selflearning"):
         return "TURNON|TURNOFF"
     elif (model == "codeswitch"):
         return "TURNON|TURNOFF"
