@@ -1,4 +1,3 @@
-# pylint: skip-file
 from . import nexa, waveman, sartano
 
 import logging

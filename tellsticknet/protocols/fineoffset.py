@@ -1,4 +1,3 @@
-# pylint: skip-file
 def decode(packet):
     """
     https://github.com/telldus/telldus/blob/master/telldus-core/service/ProtocolFineoffset.cpp

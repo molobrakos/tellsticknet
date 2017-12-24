@@ -1,4 +1,3 @@
-# pylint: skip-file
 def decode(packet):
     """
     https://raw.githubusercontent.com/telldus/telldus/master/telldus-core/service/ProtocolOregon.cpp
