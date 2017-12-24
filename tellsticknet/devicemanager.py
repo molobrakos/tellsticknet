@@ -70,13 +70,13 @@ class Tellstick(object):
             if typ == "controllers":
                 for controller_lab in value.keys():
                     settings = value[controller_lab]
-                    self._addcontroller(settings)
+                    self.addcontroller(settings)
 
         for typ, value in self._config.items():
             if typ == "devices":
                 for device_lab in value.keys():
                     settings = value[device_lab]
-                    self._adddevice(settings)
+                    self.adddevice(settings)
 
     def async_listen(self, callback):
         self._threads = []
@@ -106,14 +106,14 @@ class Tellstick(object):
         ids = [0] if not ids else ids
         return max(ids)+1
 
-    def _addcontroller(self, settings):
+    def addcontroller(self, settings):
         """ adds cotroller to devicemanager """
         self._LOGGER.debug("controller settings %s", settings)
         self._controllers.append(Controller(settings['address'],
                                  logger=self._LOGGER))
         self._controllers[-1].load(settings)
 
-    def _adddevice(self, settings):
+    def adddevice(self, settings):
         """ adds device til devicemanager """
         self._LOGGER.debug("device settings %s", settings)
         self._devices.append(Device(logger=self._LOGGER))
@@ -175,6 +175,7 @@ class Tellstick(object):
             if s.sensorId() == packet["sensorId"]:
                 self._LOGGER.debug("Updating state for sensor %s",
                                    s.sensorId())
+                self._LOGGER.debug("Packet data: %s", packet["data"])
                 updated = s.setSensorValues(packet["data"],
                                             packet['lastUpdated'])
                 self._LOGGER.debug("Updated state for sensor %s",
@@ -188,12 +189,12 @@ class Tellstick(object):
             newid = self._getnewid()
             self._LOGGER.info("newid %s", newid)
             name = "(No name)"
-            self._adddevice({'name': name,
-                             'id': newid,
-                             'sensorId': packet["sensorId"],
-                             'protocol': packet["protocol"],
-                             'model': packet["model"],
-                             'controller': controller.id()})
+            self.adddevice({'name': name,
+                            'id': newid,
+                            'sensorId': packet["sensorId"],
+                            'protocol': packet["protocol"],
+                            'model': packet["model"],
+                            'controller': controller.id()})
             for s in self._devices:
                 if s.sensorId() == packet["sensorId"]:
                     self._LOGGER.debug("Updating state for sensor %s",
@@ -212,22 +213,26 @@ class Tellstick(object):
 
     def _switchhandler(self, packet, controller):
         """ hadels if event is from switch """
-        controller_id = frozenset(  # combine "house" and "unit" as id
-            {key: value for key, value in packet.items()
-             if key in ("house", "unit")}.items()
-        )
+        for key, value in packet.items():
+            if 'unit' in key:
+                punit = str(value)
+            elif 'house' in key:
+                phouse = str(value)
+
         new = True
         device = None
+        local_id = (str(phouse), str(punit))
         for d in self._devices:
             if d.params() is not None:
-                controllerid = frozenset(  # combine "house" and "unit" as id
-                    {key: value for key, value in d.params().items()
-                     if key in ("house", "unit")}.items()
-                )
-
-                if controller_id == controllerid:
+                for param in d.params():
+                    if param.get('name') == 'unit':
+                        unit = param.get('value')
+                    elif param.get('name') == 'house':
+                        house = param.get('value')
+                device_id = (str(house), str(unit))
+                if (device_id == local_id):
                     d.setState(packet)
-                    self._LOGGER.debug("Updated state for contoller %s",
+                    self._LOGGER.debug("Updated state for device %s",
                                        d.name())
                     new = False
                     device = d
@@ -238,11 +243,11 @@ class Tellstick(object):
                                                 args=(1, ))
                 self._threads.append(self._sleept)
                 self._sleept.start()
-            if controller_id in self._newdevices[0]:
-                if controller_id in self._newdevices[1]:
-                    if controller_id in self._newdevices[2]:
+            if local_id in self._newdevices[0]:
+                if local_id in self._newdevices[1]:
+                    if local_id in self._newdevices[2]:
                         self._LOGGER.info("Discovered new controller %s",
-                                          controller_id)
+                                          local_id)
                         self._LOGGER.info("newid %s", self._getnewid())
                         name = "Unknown switch"
                         newid = self._getnewid()
@@ -250,32 +255,46 @@ class Tellstick(object):
                         methods = Protocol(protocol=packet["protocol"]
                                            ).methods(
                                                     packet['model'])
-                        self._adddevice({'name': name,
-                                         'id': newid,
-                                         'parameters': {'house':  packet[
-                                                                        "house"
-                                                                        ],
-                                                        'unit': packet[
+                        self.adddevice({'name': name,
+                                        'id': newid,
+                                        'parameters': {'house':  str(packet[
+                                                                       "house"
+                                                                       ]),
+                                                       'unit': str(packet[
                                                                       'unit'
-                                                                      ]
-                                                        },
-                                         'protocol': packet["protocol"],
-                                         'model': packet["model"],
-                                         'metods': methods,
-                                         'controller': controller.id()})
-                        device = self.device(newid)
+                                                                      ])
+                                                       },
+                                        'protocol': packet["protocol"],
+                                        'model': packet["model"],
+                                        'metods': methods,
+                                        'controller': controller.id()})
+                        for d in self._devices:
+                            if d.params() is not None:
+                                for param in d.params():
+                                    if param.get('name') == 'unit':
+                                        unit = param.get('value')
+                                    elif param.get('name') == 'house':
+                                        house = param.get('value')
+                                device_id = (house, unit)
+                                if (device_id == local_id):
+                                    d.setState(packet)
+                                    self._LOGGER.debug("Updated state for",
+                                                       "contoller %s",
+                                                       d.name())
+                                    new = False
+                                    device = d
                     else:
-                        self._newdevices[2].append(controller_id)
+                        self._newdevices[2].append(local_id)
                 else:
-                    self._newdevices[1].append(controller_id)
+                    self._newdevices[1].append(local_id)
             else:
-                self._newdevices[0].append(controller_id)
+                self._newdevices[0].append(local_id)
         if device is None:
             self._LOGGER.debug("No valid device: %s", packet)
         else:
             self._LOGGER.debug("Valid device found: %s", device)
-            self._LOGGER.debug("Valid device found: %s", device.deviceDict())
-            return device.deviceDict()
+            return {**device.deviceDict(),
+                    **{'parameters': device.deviceInfo().get('parameter')}}
 
     def _events(self, controller):
         """ listens for events from telstick net """
@@ -293,7 +312,10 @@ class Tellstick(object):
 
             if device is not None:
                 self._LOGGER.info("Async update of device: %s",
-                                  device.get('sensorId'))
+                                  device.get('name'))
+                self._LOGGER.debug("Returning packet %s", packet)
+                yield packet
                 self._callback(device)
-            self._LOGGER.debug("Returning packet %s", packet)
-            yield packet
+            else:
+                self._LOGGER.debug("Returning packet %s", packet)
+                yield packet

@@ -84,7 +84,7 @@ class Device(object):
         self._loadCount = 0
         self._name = None
         self._protocol = None
-        self._params = None
+        self._params = []
         self._manager = None
         self._model = None
         self._state = TURNOFF
@@ -132,20 +132,53 @@ class Device(object):
             if 'scale' in settings:
                 self._scale = settings['scale']
             else:
-                self._scale = 1
+                self._scale = '0'
         if 'protocol' in settings:
             self._protocol = Protocol(protocol=settings['protocol'])
             if not self._is_sensor:
-                self._methods = self._protocol.methods(settings['model'])
+                self._methods = self._protocol.methods(settings['model'
+                                                                ].split(":")[0]
+                                                       )
         if 'model' in settings:
             self._model = settings['model'].split("-")[0]
-        if 'controller_id' in settings:
-            self._controller = str(settings['controller_id'])
+        if 'client_id' in settings:
+            self._controller = str(settings['client_id'])
             for c in controllers:
                 if c.id() == self._controller:
                     self._controllername = c.name()
                 if c.id() == self._controller:
                     self._controllerobj = c
+
+    def deviceInfo(self):
+        if self.isDevice():
+            return {'id': self._id,
+                    'name': self._name,
+                    'state': self._state,
+                    'statevalue': self._stateValue,
+                    'methods': self._int_methods(self._methods),
+                    'type': 'device',
+                    'client': self._client,
+                    'protocol': str(self._protocol),
+                    'model': self._model,
+                    'online': '1',
+                    'editable': 0,
+                    'parameter': self._params}
+
+        elif self.isSensor():
+            return {'id': self._id,
+                    'clientName': self._controllername,
+                    'name': self._name,
+                    'lastUpdated': self.lastUpdated,
+                    'ignored': 0,
+                    'editable': 0,
+                    'data': self._sensorValues,
+                    'protocol': self._protocol,
+                    'sensorId': self._sensorId,
+                    'timezoneoffset': 0,
+                    'battery': self._battery,
+                    'keepHistry': 0}
+        else:
+            return {}
 
     def deviceDict(self):
         """ retruns dict reprecenting device """
