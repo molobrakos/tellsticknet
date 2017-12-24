@@ -3,6 +3,25 @@ _LOGGER = logging.getLogger(__name__)
 
 # https://github.com/telldus/telldus/blob/master/telldus-core/service/ProtocolSartano.cpp
 
+TURNON = 1
+TURNOFF = 2
+
+
+def method(val):
+    _LOGGER.debug("Getting metod for val: %s", val)
+    if val == TURNON:
+        method = 1
+    elif val == TURNOFF:
+        method = 0
+    else:
+        raise RuntimeError("invalid method", val)
+    return method
+
+
+def methods(model):
+    if (model == "codeswitch"):
+        return "TURNON|TURNOFF"
+
 
 def decode(packet):
     data = packet.pop("data")

@@ -26,11 +26,64 @@ def discover():
 
 class Controller:
 
-    def __init__(self, address):
+    def __init__(self, address, logger=None):
         _LOGGER.debug("creating controller with address %s", address)
+        super(Controller, self).__init__()
         self._address = address
         self._last_registration = None
         self._stop = False
+        self._LOGGER = logger or logging.getLogger(__name__)
+        self._id = 0
+        self._ignored = None
+        self._devices = None
+        self._name = None
+        self._port = COMMAND_PORT
+        self._stop = False
+        self._last_registration = None
+        self._iscontroller = True
+
+    def id(self):
+        """ returns controller id """
+        return self._id
+
+    def address(self):
+        """ retruns address """
+        return self._address
+
+    def port(self):
+        """ return controller port """
+        return self._port
+
+    def load(self, settings):
+        """ loads settnigs from config to contoller object """
+        if 'id' in settings:
+            self._id = str(settings['id'])
+        if 'name' in settings:
+            self._name = settings['name']
+        if 'port' in settings:
+            self._port = str(settings['port'])
+        if 'address' in settings:
+            self._address = settings['address']
+        self._LOGGER.debug("loaded controller: %s, " +
+                           "id: %s, address: %s, port: %s",
+                           self._name, self._id, self._address, self._port)
+
+    def ignored(self):
+        """ retrun ignored """
+        return self._ignored
+
+    def iscontroller(self):
+        """
+        Return True if this is a device.
+        """
+        return self._iscontroller
+
+    def name(self):
+        """ retruns name of controller """
+        if self._name is not None:
+            return self._name
+        else:
+            return 'Controller %i' % self._id
 
     def stop(self):
         self._stop = True

@@ -1,0 +1,40 @@
+devices:
+  switch1:
+    name: "Switch 1"
+    id: 1
+    controller_id: 1
+    protocol: arctech
+    model: selflearning-switch
+    parameters:
+      house: 20077622
+      unit: 0
+  switch2:
+    name: "Switch 2"
+    id: 2
+    controller_id: 1
+    protocol: arctech
+    model: selflearning-switch
+    parameters:
+      house: 20077622
+      unit: 1
+  sensor1:
+    name: "Balkong"
+    id: 3
+    controller_id: 1
+    protocol : "mandolyn"
+    model: "temperaturehumidity"
+    sensorId: 11
+  sensor2:
+    name: "Storgatan"
+    id: 4
+    controller_id: 1
+    protocol : "mandolyn"
+    model: "temperaturehumidity"
+    sensorId: 23
+
+
+controllers:
+  controller1:
+    name: "Tellstick net"
+    id: 1
+    address: 192.168.1.2 

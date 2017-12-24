@@ -2,7 +2,7 @@
 encode/and decode protocol as described in
 https://developer.telldus.com/doxygen/html/TellStickNet.html
 """
-
+import importlib
 import logging
 _LOGGER = logging.getLogger(__name__)
 
@@ -12,6 +12,69 @@ TAG_DICT = "h"
 TAG_LIST = "l"
 TAG_END = "s"
 TAG_SEP = ":"
+
+
+class Protocol(object):
+    """ main object for encodeing and decodeing devices """
+    def __init__(self, protocol=None):
+        if protocol is not None:
+            self._protocol = protocol
+            self._methods = None
+            modname = "tellsticknet.protocols.%s" % self._protocol
+            self._module = importlib.import_module(modname)
+            self._model = None
+            self._method = None
+            self._params = None
+
+    def __str__(self):
+        """ retrus protolu used as string """
+        return self._protocol
+
+    def setModel(self, model):
+        """ sets model attribute """
+        self._model = model
+
+    def setParameters(self, params):
+        """ seTs prameters """
+        self._params = params
+
+    def setMethod(self, action):
+        """" sets method """
+        self._method = self.varForMethod(action)
+
+    def encode(self, command):
+        """" encodes command with selcted protocol """
+        msg = {'protocol': self._protocol,
+               'method': self._method,
+               'model': self._model}
+        msg = {**msg, **self._params}
+        return encode_packet(command, **msg)
+
+    def methods(self, model):
+        """ retruns metods available in a proticol """
+        try:
+            modname = "tellsticknet.protocols.%s" % self._protocol
+            func = getattr(self._module, "methods")
+            self._methods = func(model)
+            return self._methods
+        except ImportError:
+            """ passes if protocol is incomplete """
+            _LOGGER.exception("Can not get methods for protocol %s" +
+                              "model <%s> modname, %s",
+                              self._protocol, self._model, modname)
+
+    def varForMethod(self, method):
+        """ retruns int representation of method """
+        try:
+            modname = "tellsticknet.protocols.%s" % self._protocol
+            func = getattr(self._module, "method")
+            self._method = func(method)
+            return self._method
+        except ImportError:
+            _LOGGER.exception("Can not get methods for protocol" +
+                              "%s, modname, %s",
+                              self._protocol, modname)
+            raise
 
 
 def _expect(condition):
@@ -258,7 +321,6 @@ def _decode(**packet):
     protocol = packet["protocol"]
     try:
         modname = "tellsticknet.protocols.%s" % protocol
-        import importlib
         module = importlib.import_module(modname)
         func = getattr(module, "decode")
 
@@ -267,12 +329,13 @@ def _decode(**packet):
 
         # convert data={temp=42, humidity=38} to
         # data=[{name=temp, value=42},{name=humidity, valye=38}]
-        if 'data' in packet:
-            packet['data'] = [
-                dict(name=name,
-                     value=value)
-                for name, value
-                in packet['data'].items()]
+        if packet is not None:
+            if 'data' in packet:
+                packet['data'] = [
+                    dict(name=name,
+                         value=value)
+                    for name, value
+                    in packet['data'].items()]
 
         return packet
     except ImportError:
