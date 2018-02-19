@@ -15,19 +15,6 @@ DATEFMT = "%y-%m-%d %H:%M.%S"
 LOG_LEVEL = logging.DEBUG
 _LOGGER = logging.getLogger(__name__)
 
-try:
-    import coloredlogs
-    coloredlogs.install(level=LOG_LEVEL,
-                        stream=stderr,
-                        datefmt=DATEFMT,
-                        fmt=LOGFMT)
-except ImportError:
-    _LOGGER.debug("no colored logs. pip install coloredlogs?")
-    logging.basicConfig(level=LOG_LEVEL,
-                        stream=stderr,
-                        datefmt=DATEFMT,
-                        format=LOGFMT)
-
 
 def parse_isoformat(s):
     """Parse string with date in ISO 8601 format as datetime
@@ -89,6 +76,26 @@ def print_event_stream():
 
 
 if __name__ == "__main__":
+    if '-v' in argv:
+        log_level = logging.INFO
+    elif '-vv' in argv:
+        log_level = logging.DEBUG
+    else:
+        log_level = logging.WARNING
+
+    try:
+        import coloredlogs
+        coloredlogs.install(level=log_level,
+                            stream=stderr,
+                            datefmt=DATEFMT,
+                            fmt=LOGFMT)
+    except ImportError:
+        _LOGGER.debug("no colored logs. pip install coloredlogs?")
+        logging.basicConfig(level=log_level,
+                            stream=stderr,
+                            datefmt=DATEFMT,
+                            format=LOGFMT)
+
     if argv[-1] == "mock":
         from tellsticknet.discovery import mock
         mock()
