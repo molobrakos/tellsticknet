@@ -267,7 +267,8 @@ def _decode(**packet):
 
         # convert data={temp=42, humidity=38} to
         # data=[{name=temp, value=42},{name=humidity, valye=38}]
-        if 'data' in packet:
+
+        if packet and 'data' in packet:
             packet['data'] = [
                 dict(name=name,
                      value=value)
