@@ -67,7 +67,7 @@ def print_event_stream():
         stream = controller.events()
 
     for packet in stream:
-        print(packet)
+        print(to_json(packet))
         try:
             stdout.flush()
         except IOError:
