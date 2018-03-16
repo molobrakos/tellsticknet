@@ -1,3 +1,6 @@
+*~
+.#*
+*#
 .tox
 *.egg-info
 .cache
