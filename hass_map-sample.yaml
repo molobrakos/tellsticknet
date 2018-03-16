@@ -1,0 +1,21 @@
+sensor.kok:
+  class: sensor
+  protocol: fineoffset
+  model: temperaturehumidity
+  sensorId: 151
+binary_sensor.sample:
+  class: command
+  protocol: arctech
+  model: selflearning
+  unit: 10
+  house: 25952502
+  attributes:
+    device_class: opening
+binary_sensor.main_door:
+  class: command
+  protocol: arctech
+  model: selflearning
+  unit: 2
+  house: 27141730
+  attributes:
+    device_class: opening
