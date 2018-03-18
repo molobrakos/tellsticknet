@@ -67,11 +67,14 @@ def mock():
                             (address, port))
 
 
+from pprint import pprint
 if __name__ == '__main__':
     from sys import argv
     if argv[-1] == "mock":
         mock()
+    elif len(argv) == 2 and argv[1] is not None:
+        controllers = list(discover(argv[-1]))
+        pprint(controllers)
     else:
         controllers = list(discover())
-        from pprint import pprint
         pprint(controllers)
