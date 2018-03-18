@@ -44,7 +44,7 @@ def discover(timeout=DISCOVERY_TIMEOUT):
                       int(firmware) < MIN_TELLSTICKNET_FIRMWARE_VERSION):
                     _LOGGER.info("Unsupported firmware version: %s", firmware)
                 else:
-                    yield address, entry
+                    yield address, mac, entry
 
             except socket.timeout:
                 break

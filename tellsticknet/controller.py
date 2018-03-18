@@ -21,14 +21,15 @@ def discover():
     Return all found controllers on the local network
     N.b this method blocks
     """
-    return (Controller(controller[0]) for controller in discovery.discover())
+    return (Controller(*controller[:2]) for controller in discovery.discover())
 
 
 class Controller:
 
-    def __init__(self, address):
-        _LOGGER.debug("creating controller with address %s", address)
-        self._address = address
+    def __init__(self, ip, mac):
+        _LOGGER.debug("creating controller with address %s (%s)", ip, mac)
+        self._ip = ip
+        self._mac = mac
         self._last_registration = None
         self._stop = False
 
@@ -42,8 +43,8 @@ class Controller:
             firmware/tellsticknet.c"""
         packet = encode_packet(command, **args)
         _LOGGER.debug("Sending packet to controller %s:%d <%s>",
-                      self._address, COMMAND_PORT, packet)
-        sock.sendto(packet, (self._address, COMMAND_PORT))
+                      self._ip, COMMAND_PORT, packet)
+        sock.sendto(packet, (self._ip, COMMAND_PORT))
 
     def _register_if_needed(self, sock):
         """ register self at controller """
@@ -54,7 +55,7 @@ class Controller:
                 return
 
         _LOGGER.info("Registering self as listener for device at %s",
-                     self._address)
+                     self._ip)
 
         try:
             self._send(sock, "reglistener")
@@ -69,12 +70,12 @@ class Controller:
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             sock.setblocking(1)
             sock.settimeout(TIMEOUT.seconds)
-            _LOGGER.debug("Listening for signals from %s", self._address)
+            _LOGGER.debug("Listening for signals from %s", self._ip)
             while not self._stop:
                 self._register_if_needed(sock)
                 try:
-                    response, (address, port) = sock.recvfrom(1024)
-                    if address != self._address:
+                    response, (ip, port) = sock.recvfrom(1024)
+                    if ip != self._ip:
                         continue
                     yield response.decode("ascii")
                 except (socket.timeout, OSError):
