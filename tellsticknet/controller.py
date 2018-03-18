@@ -93,5 +93,5 @@ class Controller:
 
             yield packet
 
-    def execute(self, device, command):
-        pass
+    def execute(self, device, method):
+        self._send(sock, 'send', **device)
