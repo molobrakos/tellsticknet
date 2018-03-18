@@ -164,7 +164,7 @@ class Entity:
 
     @property
     def unique_id(self):
-        return '_'.join(map(str, self.device))
+        return '{protocol}_{model}_{house}_{unit}'.format(**self.device)
 
     @property
     def discovery_prefix(self):
@@ -224,10 +224,9 @@ class Entity:
 
     @property
     def device(self):
-        return (self.entity['protocol'],
-                self.entity['model'],
-                self.entity['house'],
-                self.entity['unit'])
+        return {k:v
+                for k,v in self.entity.items()
+                if k in ['protocol', 'model', 'house', 'unit']}
 
     def subscribe(self, mqtt):
         if not self.command_topic:
