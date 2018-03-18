@@ -14,7 +14,7 @@ MIN_TELLSTICKNET_FIRMWARE_VERSION = 17
 _LOGGER = logging.getLogger(__name__)
 
 
-def discover(timeout=DISCOVERY_TIMEOUT):
+def discover(host=DISCOVERY_ADDRESS, timeout=DISCOVERY_TIMEOUT):
     """Scan network for Tellstick Net devices"""
     _LOGGER.info("Discovering tellstick devices ...")
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
@@ -22,7 +22,7 @@ def discover(timeout=DISCOVERY_TIMEOUT):
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.settimeout(timeout.seconds)
 
-        sock.sendto(DISCOVERY_PAYLOAD, (DISCOVERY_ADDRESS, DISCOVERY_PORT))
+        sock.sendto(DISCOVERY_PAYLOAD, (host, DISCOVERY_PORT))
 
         while True:
             try:
