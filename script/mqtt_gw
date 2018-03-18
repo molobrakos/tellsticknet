@@ -2,4 +2,4 @@
 # listen for and print events from devices on local network
 
 PYTHONPATH=$(readlink -f "$(dirname -- "$0")"/../)
-PYTHONPATH=$PYTHONPATH python3 -m tellsticknet.util.hass_mqtt_gw "$@"
+PYTHONPATH=$PYTHONPATH python3 -m tellsticknet.util.mqtt_gw "$@"

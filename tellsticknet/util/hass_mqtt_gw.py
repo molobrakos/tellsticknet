@@ -4,9 +4,9 @@
 Gateway to Home Assistant using MQTT
 
 Usage: 
-  hass_mqtt_gw [-v|-vv] [options]
-  hass_mqtt_gw (-h | --help)
-  hass_mqtt_gw --version
+  mqtt_gw [-v|-vv] [options]
+  mqtt_gw (-h | --help)
+  mqtt_gw --version
 
 Options:
   -h --help             Show this message
