@@ -107,8 +107,9 @@ def on_disconnect(client, userdata, rc):
     _LOGGER.warning('Disconnected')
 
 def on_message(client, userdata, message):
-    _LOGGER.info('Got %s', message)
-    
+    _LOGGER.info(f'Got message on {message.topic}: {message.payload}')
+
+
 class Entity:
     def __init__(self, entity, packet):
         self.entity = entity
@@ -136,6 +137,10 @@ class Entity:
         return self.entity.get('unit')
 
     @property
+    def optimistic(self):
+        return self.entity.get('optimistic')
+
+    @property
     def visible_name(self):
         return self.name or self.unique_id
         
@@ -159,6 +164,8 @@ class Entity:
                    availability_topic=self.availability_topic)
         if self.command_topic:
             res.update(command_topic=self.command_topic)
+        if self.optimistic:
+            res.update(optimistic=self.optimistic)
         if self.device_class:
             res.update(device_class=self.device_class)
         if self.icon:
@@ -195,13 +202,13 @@ class Entity:
     
     @property
     def command_topic(self):
-        return f'{self.topic}/cmd' if self.component in ['switch', 'lock'] else None
+        return f'{self.topic}/cmd' if self.component in ['switch', 'light', 'lock'] else None
 
     def publish_discovery(self, mqtt):
-        self.publish(mqtt, self.discovery_topic, self.discovery_payload)
+        self.publish(mqtt, self.discovery_topic, self.discovery_payload, retain=True)
         if self.command_topic:
             mqtt.subscribe(self.command_topic)
-        
+
     def publish_availability(self, mqtt):
         self.publish(mqtt, self.availability_topic, 'online')
 
