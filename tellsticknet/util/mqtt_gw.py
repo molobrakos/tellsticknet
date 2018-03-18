@@ -3,7 +3,7 @@
 """
 Gateway to Home Assistant using MQTT
 
-Usage: 
+Usage:
   hass_mqtt_gw [-v|-vv] [options]
   hass_mqtt_gw (-h | --help)
   hass_mqtt_gw --version
@@ -19,18 +19,11 @@ Options:
 
 import docopt
 import logging
-from time import time
 from json import dumps as dump_json
-from base64 import b64encode
-from collections import OrderedDict
-from os.path import join, expanduser
 from os import environ as env
 from os.path import join, dirname, expanduser
 from requests import certs
 from threading import current_thread
-from time import sleep
-from types import SimpleNamespace as ns
-from math import floor
 from sys import stderr, argv
 from itertools import product
 from yaml import safe_load as load_yaml
@@ -62,6 +55,7 @@ CONFIG_FILES = [
     'tellsticknet.conf',
     '.tellsticknet.conf']
 
+
 def read_tellsticknet_config():
     for directory, filename in (
             product(CONFIG_DIRECTORIES,
@@ -81,12 +75,14 @@ def read_tellsticknet_config():
             continue
     return {}
 
+
 def read_mqtt_config():
     """Read credentials from ~/.config/mosquitto_pub."""
     with open(join(env.get('XDG_CONFIG_HOME',
                            join(expanduser('~'), '.config')),
                    'mosquitto_pub')) as f:
-        d = dict(line.replace('-', '').split() for line in f.read().splitlines())
+        d = dict(line.replace('-', '').split()
+                 for line in f.read().splitlines())
         return dict(host=d['h'],
                     port=d['p'],
                     username=d['username'],
@@ -95,16 +91,19 @@ def read_mqtt_config():
 
 entities = read_tellsticknet_config()
 
-    
+
 def on_connect(client, userdata, flags, rc):
     current_thread().setName('MQTTThread')
     _LOGGER.info('Connected')
 
+
 def on_publish(client, userdata, mid):
     _LOGGER.info('Published')
 
+
 def on_disconnect(client, userdata, rc):
     _LOGGER.warning('Disconnected')
+
 
 def on_message(client, userdata, message):
     _LOGGER.info(f'Got message on {message.topic}: {message.payload}')
@@ -119,7 +118,7 @@ class Entity:
     @property
     def component(self):
         return self.entity.get('component')
-        
+
     @property
     def name(self):
         return self.entity.get('name')
@@ -143,19 +142,20 @@ class Entity:
     @property
     def visible_name(self):
         return self.name or self.unique_id
-        
+
     @property
     def unique_id(self):
         return '{protocol}_{model}_{house}_{unit}'.format(**self.packet)
-                
+
     @property
-    def discovery_prefix(self): 
+    def discovery_prefix(self):
         return 'homeassistant'
-    
+
     @property
     def topic(self):
-        node_id = f'tellsticknet_{self.controller._mac}'
-        return f'{self.discovery_prefix}/{self.component}/{node_id}/{self.unique_id}'
+        node_id = f'tellsticknet_{self.controller._mac}'  # noqa: F841
+        return (f'{self.discovery_prefix}/{self.component}/'
+                '{node_id}/{self.unique_id}')
 
     @property
     def discovery_payload(self):
@@ -173,7 +173,7 @@ class Entity:
         if self.unit:
             res.update(unit_of_measurement=self.unit)
         return res
-        
+
     def publish(self, mqtt, topic, payload, retain=False):
         payload = dump_json(payload) if isinstance(payload, dict) else payload
         _LOGGER.debug(f'Publishing on {topic}: {payload}')
@@ -199,13 +199,16 @@ class Entity:
     @property
     def availability_topic(self):
         return f'{self.topic}/avail'
-    
+
     @property
     def command_topic(self):
-        return f'{self.topic}/cmd' if self.component in ['switch', 'light', 'lock'] else None
+        return (f'{self.topic}/cmd'
+                if self.component in ['switch', 'light', 'lock']
+                else None)
 
     def publish_discovery(self, mqtt):
-        self.publish(mqtt, self.discovery_topic, self.discovery_payload, retain=True)
+        self.publish(mqtt, self.discovery_topic,
+                     self.discovery_payload, retain=True)
         if self.command_topic:
             mqtt.subscribe(self.command_topic)
 
@@ -226,11 +229,11 @@ def main():
                          version=__version__)
 
     if args['-v'] == 2:
-        log_level=logging.DEBUG
+        log_level = logging.DEBUG
     elif args['-v']:
-        log_level=logging.INFO
+        log_level = logging.INFO
     else:
-        log_level=logging.ERROR
+        log_level = logging.ERROR
 
     try:
         import coloredlogs
@@ -255,11 +258,11 @@ def main():
     mqtt.on_disconnect = on_disconnect
     mqtt.on_publish = on_publish
     mqtt.on_message = on_message
-    
+
     mqtt.connect(host=config['host'],
                  port=int(config['port']))
     mqtt.loop_start()
-        
+
     controllers = discover()
     controller = next(controllers, None) or exit('no tellstick devices found')
 
@@ -277,9 +280,10 @@ def main():
         for entity in match:
             print('entity', entity)
             publish(Entity(entity, packet))
-            
+
     # FIXXE: Mark as unavailable if not heard from in time t (24 hours?)
     # FIXME: Use config expire in config (like 6 hours?)
 
+
 if __name__ == '__main__':
-   main()
+    main()
