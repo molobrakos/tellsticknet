@@ -323,3 +323,17 @@ def decode_packet(packet):
             raise NotImplementedError()
     except NotImplementedError:
         _LOGGER.warning("failed to decode packet, skipping: %s", packet)
+
+
+def get_protocol(protocol):
+    try:
+        modname = "tellsticknet.protocols.%s" % protocol
+        import importlib
+        module = importlib.import_module(modname)
+        return module
+    except ImportError:
+        SRC_URL = ('https://github.com/telldus/telldus/'
+                   'tree/master/telldus-core/service')
+        _LOGGER.exception(f'Can not decode protocol {protocol}'
+                          f'Check {SRC_URL} for protocol implementation')
+        raise

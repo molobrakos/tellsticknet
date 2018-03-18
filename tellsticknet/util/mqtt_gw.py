@@ -105,15 +105,34 @@ def on_disconnect(client, userdata, rc):
     _LOGGER.warning('Disconnected')
 
 
+def on_subscribe(client, userdata, mid, qos):
+    _LOGGER.debug(f'Subscribed')
+
+
 def on_message(client, userdata, message):
     _LOGGER.info(f'Got message on {message.topic}: {message.payload}')
+    controller, device = Entity.subscriptions(message.topic)
+    command = message.payload
+    controller.execute(device, command)
+
+
+COMMANDS = {
+    'turnon': 'ON',
+    'turnoff': 'OFF'
+}
 
 
 class Entity:
+
+    subscriptions = {}
+
     def __init__(self, entity, packet):
         self.entity = entity
         self.packet = packet
         self.controller = None
+
+    def __str__(self):
+        return self.visible_name
 
     @property
     def component(self):
@@ -145,7 +164,7 @@ class Entity:
 
     @property
     def unique_id(self):
-        return '{protocol}_{model}_{house}_{unit}'.format(**self.packet)
+        return '_'.join(map(str, self.device))
 
     @property
     def discovery_prefix(self):
@@ -155,7 +174,7 @@ class Entity:
     def topic(self):
         node_id = f'tellsticknet_{self.controller._mac}'  # noqa: F841
         return (f'{self.discovery_prefix}/{self.component}/'
-                '{node_id}/{self.unique_id}')
+                f'{node_id}/{self.unique_id}')
 
     @property
     def discovery_payload(self):
@@ -181,12 +200,11 @@ class Entity:
 
     @property
     def state(self):
-        if self.packet['method'] == 'turnon':
-            return 'ON'
-        elif self.packet['method'] == 'turnoff':
-            return 'OFF'
-        else:
-            return None
+        return COMMANDS.get(self.packet['method'])
+
+    @property
+    def _has_command_topic(self):
+        return self.component in ['switch', 'light', 'lock']
 
     @property
     def state_topic(self):
@@ -202,15 +220,28 @@ class Entity:
 
     @property
     def command_topic(self):
-        return (f'{self.topic}/cmd'
-                if self.component in ['switch', 'light', 'lock']
-                else None)
+        return f'{self.topic}/set' if self._has_command_topic else None
+
+    @property
+    def device(self):
+        return (self.entity['protocol'],
+                self.entity['model'],
+                self.entity['house'],
+                self.entity['unit'])
+
+    def subscribe(self, mqtt):
+        if not self.command_topic:
+            return
+        mqtt.subscribe(self.command_topic)
+        Entity.subscriptions[self.command_topic] = (
+            self.controller, self.device)
+        from pprint import pprint
+        pprint(Entity.subscriptions)
 
     def publish_discovery(self, mqtt):
         self.publish(mqtt, self.discovery_topic,
                      self.discovery_payload, retain=True)
-        if self.command_topic:
-            mqtt.subscribe(self.command_topic)
+        self.subscribe(mqtt)
 
     def publish_availability(self, mqtt):
         self.publish(mqtt, self.availability_topic, 'online')
@@ -278,7 +309,6 @@ def main():
             _LOGGER.warning('Skipping packet %s', packet)
             continue
         for entity in match:
-            print('entity', entity)
             publish(Entity(entity, packet))
 
     # FIXXE: Mark as unavailable if not heard from in time t (24 hours?)

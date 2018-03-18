@@ -92,3 +92,6 @@ class Controller:
             _LOGGER.debug("Got packet %s", packet)
 
             yield packet
+
+    def execute(self, device, command):
+        pass
