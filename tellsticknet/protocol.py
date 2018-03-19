@@ -62,9 +62,8 @@ def _encode_integer(d):
 def _encode_dict(d):
     """
     encode a dict
-    (keys will be put in sorted order)
 
-    >>> _encode_dict({"foo": "bar", "baz": 42})
+    >>> _encode_dict(OrderedDict(baz=42, foo='bar'))
     'h3:bazi2as3:foo3:bars'
 
     >>> _encode_dict({})
@@ -85,7 +84,7 @@ def _encode_dict(d):
     return "%s%s%s" % (
         TAG_DICT,
         "".join(_encode_any(x)
-                for keyval in sorted(d.items())
+                for keyval in d.items()
                 for x in keyval),
         TAG_END)
 
