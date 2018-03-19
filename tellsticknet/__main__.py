@@ -7,12 +7,14 @@ Usage:
   tellsticknet --version
   tellsticknet [-v|-vv] [options] discover
   tellsticknet [-v|-vv] [options] mock
-  tellsticknet [-v|-vv] [options] listen [-raw]
-  tellsticknet [-v|-vv] [options] send <cmd>
+  tellsticknet [-v|-vv] [options] listen [--raw]
+  tellsticknet [-v|-vv] [options] send <name> <cmd>
+  tellsticknet [-v|-vv] [options] send <protocol> <model> <house> <unit> <cmd>
   tellsticknet [-v|-vv] [options] mqtt
 
 Options:
   -H <ip>               IP of Tellstick Net device
+  --raw                 Print raw packets instead of parsed data
   -h --help             Show this message
   -v,-vv                Increase verbosity
   --version             Show version
@@ -23,8 +25,12 @@ import logging
 import re
 from datetime import datetime
 from sys import argv, stdout, stderr, stdin
+from os.path import join, dirname, expanduser
+from os import environ as env
+from itertools import product
+from yaml import safe_load as load_yaml
 
-from tellsticknet import __version__
+from tellsticknet import __version__, TURNON, TURNOFF, UP, DOWN, STOP
 from tellsticknet.protocol import decode_packet
 from tellsticknet.controller import discover
 
@@ -74,14 +80,14 @@ def prepend_timestamp(line):
     return "{} {}".format(timestamp, line)
 
 
-def print_event_stream():
+def print_event_stream(raw=False):
     """Print event stream"""
     controllers = discover()
 
     # for now only care about one controller
     controller = next(controllers, None) or exit('no tellstick devices found')
 
-    if argv[-1] == "raw":
+    if raw:
         stream = map(prepend_timestamp, controller.packets())
     else:
         stream = controller.events()
@@ -93,6 +99,45 @@ def print_event_stream():
         except IOError:
             # broken pipe
             pass
+
+
+def make_key(item):
+    """Return a unique key for the switch/sensor."""
+    FMT_SWITCH = '{class}/{protocol}/{model}/{unit}/{house}'
+    FMT_SENSOR = '{class}/{protocol}/{model}/{sensorId}'
+    template = FMT_SWITCH if 'unit' in item else FMT_SENSOR
+    return template.format(**item)
+
+
+CONFIG_DIRECTORIES = [
+    dirname(argv[0]),
+    expanduser('~'),
+    env.get('XDG_CONFIG_HOME',
+            join(expanduser('~'), '.config'))]
+
+CONFIG_FILES = [
+    'tellsticknet.conf',
+    '.tellsticknet.conf']
+
+
+def read_config():
+    for directory, filename in (
+            product(CONFIG_DIRECTORIES,
+                    CONFIG_FILES)):
+        try:
+            config = join(directory, filename)
+            _LOGGER.debug('checking for config file %s', config)
+            with open(config) as config:
+                e = load_yaml(config)
+                return {
+                    make_key(key): [
+                        proto
+                        for proto in e
+                        if make_key(proto) == make_key(key)]
+                    for key in e}
+        except (IOError, OSError):
+            continue
+    return {}
 
 
 if __name__ == "__main__":
@@ -119,6 +164,14 @@ if __name__ == "__main__":
                             datefmt=DATEFMT,
                             format=LOGFMT)
 
+    protocol = 'arctech'
+    model = 'selflearning'
+    house = 53103098
+    unit = 0
+    method = 2
+    msg = "4:sendh8:protocol%X:%s5:model%X:%s5:housei%Xs4:uniti%Xs6:methodi%Xss" % (len(protocol), protocol, len(model), model, house, unit, method)
+    print(msg)
+    
     if not stdin.isatty():
         parse_stdin()
     elif args['mock']:
@@ -127,7 +180,35 @@ if __name__ == "__main__":
     elif args['discover']:
         print(list(discover()))
     elif args['listen']:
-        print_event_stream()
+        print_event_stream(raw=args['--raw'])
+    elif args['send']:
+        controller = next(discover(), None) or exit('No tellstick devices found')
+        from pprint import pprint
+        config = [e for x in read_config().values() for e in x]
+
+        cmd = args['<cmd>']
+        METHODS = dict(
+            on=TURNON,
+            turnon=TURNON,
+            off=TURNOFF,
+            turnoff=TURNOFF,
+            up=UP,
+            down=DOWN,
+            stop=STOP)
+        method = METHODS.get(cmd.lower()) or exit('method not found')
+
+        name = args['<name>']
+        if name:
+            from collections import OrderedDict
+            entity = next(e for e in config if name == e['name']) or exit('device not found')
+            device=OrderedDict(protocol=entity['protocol'],
+                               model=entity['model'],
+                               house=entity['house'],
+                               unit=entity['unit']-1)
+        elif protocol and model and house and unit:
+            pass  # FIXME
+        controller.execute(device, method)
     elif args['mqtt']:
         from tellsticknet.mqtt import run
-        run()
+        config = read_config()
+        run(config)
