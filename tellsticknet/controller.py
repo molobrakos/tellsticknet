@@ -33,6 +33,9 @@ class Controller:
         self._last_registration = None
         self._stop = False
 
+    def __repr__(self):
+        return f'Controller@{self._ip} ({self._mac})'
+        
     def stop(self):
         self._stop = True
 

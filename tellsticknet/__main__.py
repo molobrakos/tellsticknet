@@ -1,10 +1,30 @@
 #!/usr/bin/env python3
+"""
+Interact with Tellstick Net device on local network
 
+Usage:
+  tellsticknet (-h | --help)
+  tellsticknet --version
+  tellsticknet [-v|-vv] [options] discover
+  tellsticknet [-v|-vv] [options] mock
+  tellsticknet [-v|-vv] [options] listen [-raw]
+  tellsticknet [-v|-vv] [options] send <cmd>
+  tellsticknet [-v|-vv] [options] mqtt
+
+Options:
+  -H <ip>               IP of Tellstick Net device
+  -h --help             Show this message
+  -v,-vv                Increase verbosity
+  --version             Show version
+"""
+
+import docopt
 import logging
 import re
 from datetime import datetime
 from sys import argv, stdout, stderr, stdin
 
+from tellsticknet import __version__
 from tellsticknet.protocol import decode_packet
 from tellsticknet.controller import discover
 
@@ -76,12 +96,15 @@ def print_event_stream():
 
 
 if __name__ == "__main__":
-    if '-v' in argv:
-        log_level = logging.INFO
-    elif '-vv' in argv:
-        log_level = logging.DEBUG
+    args = docopt.docopt(__doc__,
+                         version=__version__)
+    
+    if args['-v'] == 2:
+        log_level=logging.DEBUG
+    elif args['-v']:
+        log_level=logging.INFO
     else:
-        log_level = logging.WARNING
+        log_level=logging.ERROR
 
     try:
         import coloredlogs
@@ -96,10 +119,12 @@ if __name__ == "__main__":
                             datefmt=DATEFMT,
                             format=LOGFMT)
 
-    if argv[-1] == "mock":
+    if not stdin.isatty():
+        parse_stdin()
+    elif args['mock']:
         from tellsticknet.discovery import mock
         mock()
-    elif not stdin.isatty():
-        parse_stdin()
-    else:
+    elif args['discover']:
+        print(list(discover()))
+    elif args['listen']:
         print_event_stream()
