@@ -7,7 +7,6 @@
 import logging
 from json import dumps as dump_json
 from os import environ as env
-from os.path import join, dirname, expanduser
 from requests import certs
 from threading import current_thread
 from sys import stderr, argv
@@ -20,46 +19,7 @@ from tellsticknet.controller import discover
 _LOGGER = logging.getLogger(__name__)
 
 
-def make_key(item):
-    """Return a unique key for the switch/sensor."""
-    FMT_SWITCH = '{class}/{protocol}/{model}/{unit}/{house}'
-    FMT_SENSOR = '{class}/{protocol}/{model}/{sensorId}'
-    template = FMT_SWITCH if 'unit' in item else FMT_SENSOR
-    return template.format(**item)
-
-
-CONFIG_DIRECTORIES = [
-    dirname(argv[0]),
-    expanduser('~'),
-    env.get('XDG_CONFIG_HOME',
-            join(expanduser('~'), '.config'))]
-
-CONFIG_FILES = [
-    'tellsticknet.conf',
-    '.tellsticknet.conf']
-
-
-def read_tellsticknet_config():
-    for directory, filename in (
-            product(CONFIG_DIRECTORIES,
-                    CONFIG_FILES)):
-        try:
-            config = join(directory, filename)
-            _LOGGER.debug('checking for config file %s', config)
-            with open(config) as config:
-                e = load_yaml(config)
-                return {
-                    make_key(key): [
-                        proto
-                        for proto in e
-                        if make_key(proto) == make_key(key)]
-                    for key in e}
-        except (IOError, OSError):
-            continue
-    return {}
-
-
-def read_mqtt_config():
+def read_credentials():
     """Read credentials from ~/.config/mosquitto_pub."""
     with open(join(env.get('XDG_CONFIG_HOME',
                            join(expanduser('~'), '.config')),
@@ -70,9 +30,6 @@ def read_mqtt_config():
                     port=d['p'],
                     username=d['username'],
                     password=d['pw'])
-
-
-entities = read_tellsticknet_config()
 
 
 def on_connect(client, userdata, flags, rc):
@@ -231,11 +188,11 @@ class Entity:
             _LOGGER.warning(f'No state available for {self}')
 
 
-def run():
-    config = read_mqtt_config()
+def run(config):
+    credentials = read_credentials()
     mqtt = paho.Client()
-    mqtt.username_pw_set(username=config['username'],
-                         password=config['password'])
+    mqtt.username_pw_set(username=credentials['username'],
+                         password=credentials['password'])
     mqtt.tls_set(certs.where())
 
     mqtt.on_connect = on_connect
@@ -243,8 +200,8 @@ def run():
     mqtt.on_publish = on_publish
     mqtt.on_message = on_message
 
-    mqtt.connect(host=config['host'],
-                 port=int(config['port']))
+    mqtt.connect(host=credentials['host'],
+                 port=int(credentials['port']))
     mqtt.loop_start()
 
     controllers = discover()
@@ -257,7 +214,7 @@ def run():
         entity.publish_state(mqtt)
 
     for packet in controller.events():
-        match = entities.get(make_key(packet))
+        match = config.get(make_key(packet))
         if not match:
             _LOGGER.warning('Skipping packet %s', packet)
             continue
