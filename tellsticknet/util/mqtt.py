@@ -1,23 +1,9 @@
 #!/usr/bin/env python3
 # -*- mode: python; coding: utf-8 -*-
-"""
-Gateway to Home Assistant using MQTT
-
-Usage:
-  hass_mqtt_gw [-v|-vv] [options]
-  hass_mqtt_gw (-h | --help)
-  hass_mqtt_gw --version
-
-Options:
-  -h --help             Show this message
-  -v,-vv                Increase verbosity
-  --version             Show version
-"""
 
 # FIXME: Send commands via crontab
 # FIXME: Common config
 
-import docopt
 import logging
 from json import dumps as dump_json
 from os import environ as env
@@ -32,9 +18,6 @@ from tellsticknet import __version__
 from tellsticknet.controller import discover
 
 _LOGGER = logging.getLogger(__name__)
-
-LOGFMT = "%(asctime)s %(levelname)5s (%(threadName)s) [%(name)s] %(message)s"
-DATEFMT = "%y-%m-%d %H:%M.%S"
 
 
 def make_key(item):
@@ -253,31 +236,7 @@ class Entity:
             _LOGGER.warning(f'No state available for {self}')
 
 
-def main():
-    """Command line interface."""
-    args = docopt.docopt(__doc__,
-                         version=__version__)
-
-    if args['-v'] == 2:
-        log_level = logging.DEBUG
-    elif args['-v']:
-        log_level = logging.INFO
-    else:
-        log_level = logging.ERROR
-
-    try:
-        import coloredlogs
-        coloredlogs.install(level=log_level,
-                            stream=stderr,
-                            datefmt=DATEFMT,
-                            fmt=LOGFMT)
-    except ImportError:
-        _LOGGER.debug("no colored logs. pip install coloredlogs?")
-        logging.basicConfig(level=log_level,
-                            stream=stderr,
-                            datefmt=DATEFMT,
-                            format=LOGFMT)
-
+def run():
     config = read_mqtt_config()
     mqtt = paho.Client()
     mqtt.username_pw_set(username=config['username'],
@@ -313,6 +272,3 @@ def main():
     # FIXXE: Mark as unavailable if not heard from in time t (24 hours?)
     # FIXME: Use config expire in config (like 6 hours?)
 
-
-if __name__ == '__main__':
-    main()
