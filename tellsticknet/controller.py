@@ -97,4 +97,7 @@ class Controller:
             yield packet
 
     def execute(self, device, method):
-        self._send(sock, 'send', **device, method=method)
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            sock.setblocking(1)
+            self._send(sock, 'send', **device, method=method)
