@@ -128,3 +128,6 @@ if __name__ == "__main__":
         print(list(discover()))
     elif args['listen']:
         print_event_stream()
+    elif args['mqtt']:
+        from tellsticknet.util.mqtt import run
+        run()
