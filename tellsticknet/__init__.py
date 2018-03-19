@@ -7,9 +7,17 @@ assert sys.version_info >= (3, 0)
 
 _LOGGER = logging.getLogger(__name__)
 
-
 __version__ = '0.0.1'
 
+TURNON = 1
+TURNOFF = 2
+BELL = 4
+TOGGLE = 8
+DIM = 16
+LEARN = 32
+UP = 128
+DOWN = 256
+STOP = 512
 
 def async_listen(host, callback):
 
