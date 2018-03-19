@@ -94,7 +94,7 @@ def on_subscribe(client, userdata, mid, qos):
 
 def on_message(client, userdata, message):
     _LOGGER.info(f'Got message on {message.topic}: {message.payload}')
-    controller, device = Entity.subscriptions(message.topic)
+    controller, device = Entity.subscriptions.get(message.topic)
     command = message.payload
     # FIXME: Command topic does not make sense for all devices
     controller.execute(device, command)

@@ -129,5 +129,5 @@ if __name__ == "__main__":
     elif args['listen']:
         print_event_stream()
     elif args['mqtt']:
-        from tellsticknet.util.mqtt import run
+        from mqtt import run
         run()
