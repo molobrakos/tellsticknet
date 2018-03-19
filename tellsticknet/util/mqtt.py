@@ -96,6 +96,7 @@ def on_message(client, userdata, message):
     _LOGGER.info(f'Got message on {message.topic}: {message.payload}')
     controller, device = Entity.subscriptions(message.topic)
     command = message.payload
+    # FIXME: Command topic does not make sense for all devices
     controller.execute(device, command)
 
 
@@ -186,10 +187,6 @@ class Entity:
         return COMMANDS.get(self.packet['method'])
 
     @property
-    def _has_command_topic(self):
-        return self.component in ['switch', 'light', 'lock']
-
-    @property
     def state_topic(self):
         return f'{self.topic}/state'
 
@@ -203,7 +200,7 @@ class Entity:
 
     @property
     def command_topic(self):
-        return f'{self.topic}/set' if self._has_command_topic else None
+        return f'{self.topic}/set'
 
     @property
     def device(self):
@@ -212,8 +209,6 @@ class Entity:
                 if k in ['protocol', 'model', 'house', 'unit']}
 
     def subscribe(self, mqtt):
-        if not self.command_topic:
-            return
         mqtt.subscribe(self.command_topic)
         Entity.subscriptions[self.command_topic] = (
             self.controller, self.device)
