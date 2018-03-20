@@ -1,5 +1,0 @@
-#!/bin/sh
-# dump raw received packets to stdout
-
-PYTHONPATH=$(readlink -f "$(dirname -- "$0")"/../)
-PYTHONPATH=$PYTHONPATH python3 -m tellsticknet raw
