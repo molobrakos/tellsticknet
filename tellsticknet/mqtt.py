@@ -7,13 +7,14 @@
 import logging
 from json import dumps as dump_json
 from os import environ as env
+from os.path import join, dirname, expanduser
 from requests import certs
 from threading import current_thread
 from sys import stderr, argv
 from itertools import product
 from yaml import safe_load as load_yaml
 import paho.mqtt.client as paho
-from tellsticknet import __version__
+from tellsticknet import __version__, make_key
 from tellsticknet.controller import discover
 
 _LOGGER = logging.getLogger(__name__)
