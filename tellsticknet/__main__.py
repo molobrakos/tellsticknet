@@ -184,6 +184,11 @@ if __name__ == "__main__":
         method = METHODS.get(cmd.lower()) or exit('method not found')
 
         name = args['<name>']
+        protocol = args['<protocol>']
+        model = args['<model>']
+        house = args['<house>']
+        unit = args['<unit>']
+
         if name:
             from collections import OrderedDict
             entity = next(e for e in config if name == e['name']) or exit('device not found')
