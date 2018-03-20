@@ -1,5 +1,0 @@
-#!/bin/sh
-# listen for and print events from devices on local network
-
-PYTHONPATH=$(readlink -f "$(dirname -- "$0")"/../)
-PYTHONPATH=$PYTHONPATH python3 -m tellsticknet "$@"
