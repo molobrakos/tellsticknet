@@ -6,10 +6,8 @@ from json import loads as load_json
 from requests import Session, RequestException
 import logging
 
-
 API_URL = 'http://hass:8123/api'
 SESSION = Session()
-
 
 _LOGGER = logging.getLogger(__name__)
 LOGFMT = "%(asctime)s %(levelname)5s (%(threadName)s) [%(name)s] %(message)s"
@@ -25,8 +23,7 @@ logging.basicConfig(level=log_level,
                     format=LOGFMT)
 
 
-for line in stdin:
-    packet = load_json(line)
+def publish():
     url = '{base}/states/{entity}'.format(base=API_URL, entity=packet['entity'])
     _LOGGER.debug('Posting to url %s', url)
     method = packet['method']
@@ -41,3 +38,13 @@ for line in stdin:
         res.raise_for_status()
     except RequestException as e:
         _LOGGER.error('Failed to post to url %s: %s %s', url, e, res.text)
+
+for line in stdin:
+    packet = load_json(line)
+    match = config.get(make_key(packet))
+    if not match:
+        _LOGGER.warning('Skipping packet %s', packet)
+        continue
+    for entity in match:
+        publish(Entity(entity, packet))
+
