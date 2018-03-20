@@ -30,7 +30,7 @@ from os import environ as env
 from itertools import product
 from yaml import safe_load as load_yaml
 
-from tellsticknet import __version__, TURNON, TURNOFF, UP, DOWN, STOP
+from tellsticknet import __version__, make_key, TURNON, TURNOFF, UP, DOWN, STOP
 from tellsticknet.protocol import decode_packet
 from tellsticknet.controller import discover
 
@@ -99,14 +99,6 @@ def print_event_stream(raw=False):
         except IOError:
             # broken pipe
             pass
-
-
-def make_key(item):
-    """Return a unique key for the switch/sensor."""
-    FMT_SWITCH = '{class}/{protocol}/{model}/{unit}/{house}'
-    FMT_SENSOR = '{class}/{protocol}/{model}/{sensorId}'
-    template = FMT_SWITCH if 'unit' in item else FMT_SENSOR
-    return template.format(**item)
 
 
 CONFIG_DIRECTORIES = [
