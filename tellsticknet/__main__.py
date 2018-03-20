@@ -6,11 +6,12 @@ Usage:
   tellsticknet (-h | --help)
   tellsticknet --version
   tellsticknet [-v|-vv] [options] discover
-  tellsticknet [-v|-vv] [options] mock
   tellsticknet [-v|-vv] [options] listen [--raw]
   tellsticknet [-v|-vv] [options] send <name> <cmd>
   tellsticknet [-v|-vv] [options] send <protocol> <model> <house> <unit> <cmd>
   tellsticknet [-v|-vv] [options] mqtt
+  tellsticknet [-v|-vv] [options] mock
+  tellsticknet [-v|-vv] [options] parse
 
 Options:
   -H <ip>               IP of Tellstick Net device
@@ -156,7 +157,7 @@ if __name__ == "__main__":
                             datefmt=DATEFMT,
                             format=LOGFMT)
 
-    if not stdin.isatty():
+    if args['parse'] and not stdin.isatty():
         parse_stdin()
     elif args['mock']:
         from tellsticknet.discovery import mock
