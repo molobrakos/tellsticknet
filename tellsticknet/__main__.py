@@ -162,7 +162,8 @@ if __name__ == "__main__":
         from tellsticknet.discovery import mock
         mock()
     elif args['discover']:
-        print(list(discover()))
+        for c in discover():
+            print(c)
     elif args['listen']:
         print_event_stream(raw=args['--raw'])
     elif args['send']:
