@@ -1,5 +1,0 @@
-#!/bin/sh
-# print discovered devices on local network, then exit
-
-PYTHONPATH=$(readlink -f "$(dirname -- "$0")"/../)
-PYTHONPATH=$PYTHONPATH python3 -m tellsticknet.discovery $@

@@ -1,5 +1,0 @@
-#!/bin/sh
-# mock a device on the local network
-
-PYTHONPATH=$(readlink -f "$(dirname -- "$0")"/../)
-PYTHONPATH=$PYTHONPATH python3 -m tellsticknet.discovery mock
