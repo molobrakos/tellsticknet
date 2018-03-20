@@ -90,10 +90,10 @@ def print_event_stream(raw=False):
     if raw:
         stream = map(prepend_timestamp, controller.packets())
     else:
-        stream = controller.events()
+        stream = (to_json(event) for event in controller.events())
 
     for packet in stream:
-        print(to_json(packet))
+        print(packet)
         try:
             stdout.flush()
         except IOError:
