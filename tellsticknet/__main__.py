@@ -156,14 +156,6 @@ if __name__ == "__main__":
                             datefmt=DATEFMT,
                             format=LOGFMT)
 
-    protocol = 'arctech'
-    model = 'selflearning'
-    house = 53103098
-    unit = 0
-    method = 2
-    msg = "4:sendh8:protocol%X:%s5:model%X:%s5:housei%Xs4:uniti%Xs6:methodi%Xss" % (len(protocol), protocol, len(model), model, house, unit, method)
-    print(msg)
-    
     if not stdin.isatty():
         parse_stdin()
     elif args['mock']:
