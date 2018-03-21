@@ -63,6 +63,8 @@ def _encode_dict(d):
     """
     encode a dict
 
+    >>> from collections import OrderedDict
+
     >>> _encode_dict(OrderedDict(baz=42, foo='bar'))
     'h3:bazi2as3:foo3:bars'
 
