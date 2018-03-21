@@ -7,14 +7,11 @@
 import logging
 from json import dumps as dump_json
 from os import environ as env
-from os.path import join, dirname, expanduser
+from os.path import join, expanduser
 from requests import certs
 from threading import current_thread
-from sys import stderr, argv
-from itertools import product
-from yaml import safe_load as load_yaml
 import paho.mqtt.client as paho
-from tellsticknet import __version__, make_key
+from tellsticknet import make_key
 from tellsticknet.controller import discover
 
 _LOGGER = logging.getLogger(__name__)
@@ -58,7 +55,8 @@ def on_message(client, userdata, message):
         entity.command(message.payload)
     else:
         _LOGGER.warning(f'Unknown recipient for {message.topic}')
-        
+
+
 COMMANDS = {
     'turnon': 'ON',
     'turnoff': 'OFF'
@@ -173,8 +171,8 @@ class Entity:
 
     @property
     def device(self):
-        return {k:v
-                for k,v in self.entity.items()
+        return {k: v
+                for k, v in self.entity.items()
                 if k in ['protocol', 'model', 'house', 'unit']}
 
     def subscribe(self, mqtt):
@@ -183,7 +181,7 @@ class Entity:
 
     def command(self, command):
         self.controller.execute(self.device, command)
-        
+
     def publish_discovery(self, mqtt):
         self.publish(mqtt, self.discovery_topic,
                      self.discovery_payload, retain=True)
@@ -235,4 +233,3 @@ def run(config):
 
     # FIXXE: Mark as unavailable if not heard from in time t (24 hours?)
     # FIXME: Use config expire in config (like 6 hours?)
-

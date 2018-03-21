@@ -1,6 +1,7 @@
 import socket
 import logging
 from datetime import timedelta
+from pprint import pprint
 
 DISCOVERY_PORT = 30303
 DISCOVERY_ADDRESS = '<broadcast>'
@@ -67,7 +68,6 @@ def mock():
                             (address, port))
 
 
-from pprint import pprint
 if __name__ == '__main__':
     from sys import argv
     if argv[-1] == "mock":

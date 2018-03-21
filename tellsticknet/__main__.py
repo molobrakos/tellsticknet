@@ -136,7 +136,7 @@ def read_config():
 if __name__ == "__main__":
     args = docopt.docopt(__doc__,
                          version=__version__)
-    
+
     log_level = [logging.ERROR, logging.INFO, logging.DEBUG][args['-v']]
 
     try:
@@ -164,7 +164,6 @@ if __name__ == "__main__":
         print_event_stream(raw=args['--raw'])
     elif args['send']:
         controller = next(discover(), None) or exit('No tellstick devices found')
-        from pprint import pprint
         config = [e for x in read_config().values() for e in x]
 
         cmd = args['<cmd>']
@@ -186,11 +185,13 @@ if __name__ == "__main__":
 
         if name:
             from collections import OrderedDict
-            entity = next(e for e in config if name == e['name']) or exit('device not found')
-            device=OrderedDict(protocol=entity['protocol'],
-                               model=entity['model'],
-                               house=entity['house'],
-                               unit=entity['unit']-1)
+            entity = (next(e for e in config
+                           if name == e['name'])
+                      or exit('device not found'))
+            device = OrderedDict(protocol=entity['protocol'],
+                                 model=entity['model'],
+                                 house=entity['house'],
+                                 unit=entity['unit']-1)
         elif protocol and model and house and unit:
             pass  # FIXME
         controller.execute(device, method)

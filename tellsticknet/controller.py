@@ -35,7 +35,7 @@ class Controller:
 
     def __repr__(self):
         return f'Controller@{self._ip} ({self._mac})'
-        
+
     def stop(self):
         self._stop = True
 
