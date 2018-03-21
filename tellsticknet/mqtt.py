@@ -52,12 +52,13 @@ def on_subscribe(client, userdata, mid, qos):
 
 def on_message(client, userdata, message):
     _LOGGER.info(f'Got message on {message.topic}: {message.payload}')
-    controller, device = Entity.subscriptions.get(message.topic)
-    command = message.payload
     # FIXME: Command topic does not make sense for all devices
-    controller.execute(device, command)
-
-
+    entity = Entity.subscriptions.get(message.topic)
+    if entity:
+        entity.command(message.payload)
+    else:
+        _LOGGER.warning(f'Unknown recipient for {message.topic}')
+        
 COMMANDS = {
     'turnon': 'ON',
     'turnoff': 'OFF'
@@ -101,6 +102,10 @@ class Entity:
         return self.entity.get('optimistic')
 
     @property
+    def invert(self):
+        return self.entity.get('invert')
+
+    @property
     def visible_name(self):
         return self.name or self.unique_id
 
@@ -142,7 +147,13 @@ class Entity:
 
     @property
     def state(self):
-        return COMMANDS.get(self.packet['method'])
+        method = self.packet['method']
+        if self.invert:
+            if method == 'turnon':
+                method = 'turnoff'
+            elif method == 'turnoff':
+                method = 'turnon'
+        return COMMANDS.get(method)
 
     @property
     def state_topic(self):
@@ -168,11 +179,11 @@ class Entity:
 
     def subscribe(self, mqtt):
         mqtt.subscribe(self.command_topic)
-        Entity.subscriptions[self.command_topic] = (
-            self.controller, self.device)
-        from pprint import pprint
-        pprint(Entity.subscriptions)
+        Entity.subscriptions[self.command_topic] = self
 
+    def command(self, command):
+        self.controller.execute(self.device, command)
+        
     def publish_discovery(self, mqtt):
         self.publish(mqtt, self.discovery_topic,
                      self.discovery_payload, retain=True)

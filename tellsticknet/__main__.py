@@ -137,12 +137,7 @@ if __name__ == "__main__":
     args = docopt.docopt(__doc__,
                          version=__version__)
     
-    if args['-v'] == 2:
-        log_level=logging.DEBUG
-    elif args['-v']:
-        log_level=logging.INFO
-    else:
-        log_level=logging.ERROR
+    log_level = [logging.ERROR, logging.INFO, logging.DEBUG][args['-v']]
 
     try:
         import coloredlogs
