@@ -186,9 +186,9 @@ if __name__ == "__main__":
 
         if name:
             from collections import OrderedDict
-            entity = (next(e for e in config
-                           if name == e['name'])
-                      or exit('device not found'))
+            entity = (next((e for e in config
+                            if e['name'].lower().startswith(name.lower())), None)
+                      or exit(f'Device with name {name} not found'))
             device = OrderedDict(protocol=entity['protocol'],
                                  model=entity['model'],
                                  house=entity['house'],
