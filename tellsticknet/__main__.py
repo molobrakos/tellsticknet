@@ -31,7 +31,7 @@ from os import environ as env
 from itertools import product
 from yaml import safe_load as load_yaml
 
-from tellsticknet import __version__, make_key, TURNON, TURNOFF, UP, DOWN, STOP
+from tellsticknet import __version__, TURNON, TURNOFF, UP, DOWN, STOP
 from tellsticknet.protocol import decode_packet
 from tellsticknet.controller import discover
 
@@ -121,13 +121,7 @@ def read_config():
             config = join(directory, filename)
             _LOGGER.debug('checking for config file %s', config)
             with open(config) as config:
-                e = load_yaml(config)
-                return {
-                    make_key(key): [
-                        proto
-                        for proto in e
-                        if make_key(proto) == make_key(key)]
-                    for key in e}
+                return load_yaml(config)
         except (IOError, OSError):
             continue
     return {}
@@ -185,17 +179,14 @@ if __name__ == "__main__":
         unit = args['<unit>']
 
         if name:
-            from collections import OrderedDict
-            entity = (next((e for e in config
-                            if e['name'].lower().startswith(name.lower())), None)
-                      or exit(f'Device with name {name} not found'))
-            device = OrderedDict(protocol=entity['protocol'],
-                                 model=entity['model'],
-                                 house=entity['house'],
-                                 unit=entity['unit']-1)
+            devices = (e for e in config
+                       if e['name'].lower().startswith(name.lower()))
+            if not devices:
+                exit(f'Device with name {name} not found')
         elif protocol and model and house and unit:
             pass  # FIXME
-        controller.execute(device, method)
+        for device in devices:
+            controller.execute(device, method)
     elif args['mqtt']:
         from tellsticknet.mqtt import run
         config = read_config()
