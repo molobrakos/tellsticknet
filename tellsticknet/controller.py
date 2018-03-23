@@ -102,7 +102,6 @@ class Controller:
                              model=device['model'],
                              house=device['house'],
                              unit=device['unit']-1)
-        _LOGGER.debug(f'Execute {method}: {device}')
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             sock.setblocking(1)

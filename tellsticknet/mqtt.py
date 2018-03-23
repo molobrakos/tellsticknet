@@ -50,15 +50,13 @@ def on_subscribe(client, userdata, mid, qos):
 def on_message(client, userdata, message):
     _LOGGER.info(f'Got message on {message.topic}: {message.payload}')
     # FIXME: Command topic does not make sense for all devices
-    print(message.topic, message.payload)
-    print(Entity.subscriptions.keys())
     entity = Entity.subscriptions.get(message.topic)
 
     if not entity:
         _LOGGER.warning(f'Unknown recipient for {message.topic}')
         return
 
-    payload = message.payload.decode().lower()
+    payload = message.payload.decode()
 
     # FIXME; mapping between
     #  1) raw packet methods (integers, 1,2, etc)
@@ -66,14 +64,14 @@ def on_message(client, userdata, message):
     #  3) MQTT states/methods (string, ON, OFF etc)
 
     METHODS = dict(
-        on=TURNON,
-        off=TURNOFF)
+        ON=TURNON,
+        OFF=TURNOFF)
 
     method = METHODS.get(payload)
 
     if method:
         entity.command(method)
-        entity.publish_state(client)
+        entity.publish_state(payload)
     else:
         _LOGGER.warning('Unknown method')
 
@@ -159,6 +157,10 @@ class Entity:
         return self.entity_class == 'sensor'
 
     @property
+    def is_command(self):
+        return self.entity_class == 'command'
+
+    @property
     def unique_id(self):
         s = ('{class}_{protocol}_{model}_{sensorId}' if self.is_sensor else
              '{class}_{protocol}_{model}_{house}_{unit}')
@@ -228,6 +230,10 @@ class Entity:
     def publish_discovery(self):
         self.publish(self.discovery_topic,
                      self.discovery_payload, retain=True)
+
+        if self.is_command:
+            self.publish_availability()
+
         self.subscribe()
 
     def publish_availability(self):
