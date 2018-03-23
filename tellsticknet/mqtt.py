@@ -104,7 +104,7 @@ class Entity:
 
         COMMANDS = dict(turnon='ON',
                         turnoff='OFF')
-        method = packet.method
+        method = packet['method']
         if self.invert:
             if method == 'turnon':
                 method = 'turnoff'
