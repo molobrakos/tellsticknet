@@ -11,7 +11,7 @@ from os.path import join, expanduser
 from requests import certs
 from threading import current_thread
 import paho.mqtt.client as paho
-from tellsticknet import TURNON, TURNOFF, UP, DOWN, STOP
+from tellsticknet import TURNON, TURNOFF
 from tellsticknet.controller import discover
 
 _LOGGER = logging.getLogger(__name__)
@@ -64,7 +64,7 @@ def on_message(client, userdata, message):
     #  1) raw packet methods (integers, 1,2, etc)
     #  2) command decoded methods (string, turnon etc)
     #  3) MQTT states/methods (string, ON, OFF etc)
-    
+
     METHODS = dict(
         on=TURNON,
         off=TURNOFF)
@@ -86,7 +86,7 @@ class Entity:
         self.entity = entity
         self.controller = controller
         self.mqtt = mqtt
-        
+
     def __str__(self):
         return self.visible_name
 
@@ -112,7 +112,7 @@ class Entity:
             elif method == 'turnoff':
                 method = 'turnon'
         state = COMMANDS.get(method)
-       
+
         self.publish_availability()
         self.publish_state(state)
 
@@ -153,21 +153,17 @@ class Entity:
     @property
     def entity_class(self):
         return self.entity['class']
-    
+
     @property
     def is_sensor(self):
         return self.entity_class == 'sensor'
-    
-    @property
-    def unique_id(self):
-        if self.is_sensor:
-            return '{class}_{protocol}_{model}_{sensorId}'.format(**self.entity)
-        return '{class}_{protocol}_{model}_{house}_{unit}'.format(**self.entity)
 
     @property
-    def method(self):
-        return self.packet['method']
-    
+    def unique_id(self):
+        s = ('{class}_{protocol}_{model}_{sensorId}' if self.is_sensor else
+             '{class}_{protocol}_{model}_{house}_{unit}')
+        return s.format(**self.entity)
+
     @property
     def discovery_prefix(self):
         return 'homeassistant'
@@ -228,7 +224,7 @@ class Entity:
 
     def command(self, command):
         self.controller.execute(self.entity, command)
-        
+
     def publish_discovery(self):
         self.publish(self.discovery_topic,
                      self.discovery_payload, retain=True)
@@ -238,9 +234,9 @@ class Entity:
         self.publish(self.availability_topic, 'online')
 
     def publish_state(self, state):
-        if self.state:
-            _LOGGER.debug(f'State for {self}: {self.state}')
-            self.publish(self.state_topic, self.state)
+        if state:
+            _LOGGER.debug(f'State for {self}: {state}')
+            self.publish(self.state_topic, state)
         else:
             _LOGGER.warning(f'No state available for {self}')
 
@@ -260,7 +256,7 @@ def run(config):
     mqtt.connect(host=credentials['host'],
                  port=int(credentials['port']))
     mqtt.loop_start()
-    
+
     controllers = discover()
     controller = next(controllers, None) or exit('no tellstick devices found')
 
@@ -270,7 +266,7 @@ def run(config):
 
     for packet in controller.events():
         if not any(e.recieve(packet) for e in entities):
-            _LOGGER.warning('Skipped packet %s', packet)        
+            _LOGGER.warning('Skipped packet %s', packet)
 
     # FIXXE: Mark as unavailable if not heard from in time t (24 hours?)
     # FIXME: Use config expire in config (like 6 hours?)
