@@ -49,6 +49,7 @@ def on_subscribe(client, userdata, mid, qos):
 
 def on_message(client, userdata, message):
     _LOGGER.info(f'Got message on {message.topic}: {message.payload}')
+    # FIXME: Other entities representing same device
     # FIXME: Command topic does not make sense for all devices
     entity = Entity.subscriptions.get(message.topic)
 
@@ -89,7 +90,7 @@ class Entity:
         return self.visible_name
 
     def is_recipient(self, packet):
-        return all(self.entity[prop] == packet[prop]
+        return all(self.entity.get(prop) == packet.get(prop)
                    for prop in ['class',
                                 'protocol',
                                 'model',
@@ -162,19 +163,43 @@ class Entity:
 
     @property
     def unique_id(self):
-        s = ('{class}_{protocol}_{model}_{sensorId}' if self.is_sensor else
-             '{class}_{protocol}_{model}_{house}_{unit}')
-        return s.format(**self.entity)
+        return ('{class}_{protocol}_{model}_{sensorId}'
+                if self.is_sensor else
+                '{class}_{protocol}_{model}_{house}_{unit}').format(
+                    **self.entity)
 
     @property
     def discovery_prefix(self):
         return 'homeassistant'
 
     @property
-    def topic(self):
-        node_id = f'tellsticknet_{self.controller._mac}'  # noqa: F841
+    def topic_prefix(self):
+        return 'tellsticknet'
+
+    @property
+    def node_id(self):
+        return f'{self.topic_prefix}_{self.controller._mac}'  # no_qa: F841
+
+    @property
+    def discovery_topic(self):
         return (f'{self.discovery_prefix}/{self.component}/'
-                f'{node_id}/{self.unique_id}')
+                f'{self.node_id}/{self.unique_id}/config')
+
+    @property
+    def topic(self):
+        return f'{self.topic_prefix}/{self.controller._mac}/{self.unique_id}'
+
+    @property
+    def state_topic(self):
+        return f'{self.topic}/state'
+
+    @property
+    def availability_topic(self):
+        return f'{self.topic}/avail'
+
+    @property
+    def command_topic(self):
+        return f'{self.topic}/set'
 
     @property
     def discovery_payload(self):
@@ -195,24 +220,8 @@ class Entity:
 
     def publish(self, topic, payload, retain=False):
         payload = dump_json(payload) if isinstance(payload, dict) else payload
-        _LOGGER.debug(f'Publishing on {topic}: {payload}')
+        _LOGGER.debug(f'Publishing on {topic} (retain={retain}): {payload}')
         self.mqtt.publish(topic, payload, retain=retain)
-
-    @property
-    def state_topic(self):
-        return f'{self.topic}/state'
-
-    @property
-    def discovery_topic(self):
-        return f'{self.topic}/config'
-
-    @property
-    def availability_topic(self):
-        return f'{self.topic}/avail'
-
-    @property
-    def command_topic(self):
-        return f'{self.topic}/set'
 
     @property
     def device(self):
@@ -237,7 +246,7 @@ class Entity:
         self.subscribe()
 
     def publish_availability(self):
-        self.publish(self.availability_topic, 'online')
+        self.publish(self.availability_topic, 'online', retain=self.is_command)
 
     def publish_state(self, state):
         if state:
