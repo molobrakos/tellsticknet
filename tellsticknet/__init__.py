@@ -20,14 +20,6 @@ DOWN = 256
 STOP = 512
 
 
-def make_key(item):
-    """Return a unique key for the switch/sensor."""
-    FMT_COMMAND = '{class}/{protocol}/{model}/{unit}/{house}'
-    FMT_SENSOR = '{class}/{protocol}/{model}/{sensorId}'
-    template = FMT_COMMAND if item['class'] == 'command' else FMT_SENSOR
-    return template.format(**item)
-
-
 def async_listen(host, callback):
 
     from .discovery import discover
