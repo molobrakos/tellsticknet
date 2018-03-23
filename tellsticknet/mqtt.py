@@ -98,7 +98,7 @@ class Entity:
                                 'house',
                                 'sensorId'])
 
-    def recieve(self, packet):
+    def receive(self, packet):
         if not self.is_recipient(packet):
             return False
 
@@ -280,7 +280,7 @@ def run(config):
         entity.publish_discovery()
 
     for packet in controller.events():
-        if not any(e.recieve(packet) for e in entities):
+        if not any(e.receive(packet) for e in entities):
             _LOGGER.warning('Skipped packet %s', packet)
 
     # FIXXE: Mark as unavailable if not heard from in time t (24 hours?)
