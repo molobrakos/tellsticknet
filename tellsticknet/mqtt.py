@@ -11,7 +11,7 @@ from os.path import join, expanduser
 from requests import certs
 from threading import current_thread
 import paho.mqtt.client as paho
-from tellsticknet import make_key
+from tellsticknet import TURNON, TURNOFF, UP, DOWN, STOP
 from tellsticknet.controller import discover
 
 _LOGGER = logging.getLogger(__name__)
@@ -50,30 +50,73 @@ def on_subscribe(client, userdata, mid, qos):
 def on_message(client, userdata, message):
     _LOGGER.info(f'Got message on {message.topic}: {message.payload}')
     # FIXME: Command topic does not make sense for all devices
+    print(message.topic, message.payload)
+    print(Entity.subscriptions.keys())
     entity = Entity.subscriptions.get(message.topic)
-    if entity:
-        entity.command(message.payload)
-    else:
+
+    if not entity:
         _LOGGER.warning(f'Unknown recipient for {message.topic}')
+        return
 
+    payload = message.payload.decode().lower()
 
-COMMANDS = {
-    'turnon': 'ON',
-    'turnoff': 'OFF'
-}
+    # FIXME; mapping between
+    #  1) raw packet methods (integers, 1,2, etc)
+    #  2) command decoded methods (string, turnon etc)
+    #  3) MQTT states/methods (string, ON, OFF etc)
+    
+    METHODS = dict(
+        on=TURNON,
+        off=TURNOFF)
+
+    method = METHODS.get(payload)
+
+    if method:
+        entity.command(method)
+        entity.publish_state(client)
+    else:
+        _LOGGER.warning('Unknown method')
 
 
 class Entity:
 
     subscriptions = {}
 
-    def __init__(self, entity, packet):
+    def __init__(self, entity, mqtt, controller):
         self.entity = entity
-        self.packet = packet
-        self.controller = None
-
+        self.controller = controller
+        self.mqtt = mqtt
+        
     def __str__(self):
         return self.visible_name
+
+    def is_recipient(self, packet):
+        return all(self.entity[prop] == packet[prop]
+                   for prop in ['class',
+                                'protocol',
+                                'model',
+                                'unit',
+                                'house',
+                                'sensorId'])
+
+    def recieve(self, packet):
+        if not self.is_recipient(packet):
+            return False
+
+        COMMANDS = dict(turnon='ON',
+                        turnoff='OFF')
+        method = packet.method
+        if self.invert:
+            if method == 'turnon':
+                method = 'turnoff'
+            elif method == 'turnoff':
+                method = 'turnon'
+        state = COMMANDS.get(method)
+       
+        self.publish_availability()
+        self.publish_state(state)
+
+        return True
 
     @property
     def component(self):
@@ -108,9 +151,23 @@ class Entity:
         return self.name or self.unique_id
 
     @property
+    def entity_class(self):
+        return self.entity['class']
+    
+    @property
+    def is_sensor(self):
+        return self.entity_class == 'sensor'
+    
+    @property
     def unique_id(self):
-        return '{protocol}_{model}_{house}_{unit}'.format(**self.device)
+        if self.is_sensor:
+            return '{class}_{protocol}_{model}_{sensorId}'.format(**self.entity)
+        return '{class}_{protocol}_{model}_{house}_{unit}'.format(**self.entity)
 
+    @property
+    def method(self):
+        return self.packet['method']
+    
     @property
     def discovery_prefix(self):
         return 'homeassistant'
@@ -138,20 +195,10 @@ class Entity:
             res.update(unit_of_measurement=self.unit)
         return res
 
-    def publish(self, mqtt, topic, payload, retain=False):
+    def publish(self, topic, payload, retain=False):
         payload = dump_json(payload) if isinstance(payload, dict) else payload
         _LOGGER.debug(f'Publishing on {topic}: {payload}')
-        mqtt.publish(topic, payload)
-
-    @property
-    def state(self):
-        method = self.packet['method']
-        if self.invert:
-            if method == 'turnon':
-                method = 'turnoff'
-            elif method == 'turnoff':
-                method = 'turnon'
-        return COMMANDS.get(method)
+        self.mqtt.publish(topic, payload, retain=retain)
 
     @property
     def state_topic(self):
@@ -175,25 +222,25 @@ class Entity:
                 for k, v in self.entity.items()
                 if k in ['protocol', 'model', 'house', 'unit']}
 
-    def subscribe(self, mqtt):
-        mqtt.subscribe(self.command_topic)
+    def subscribe(self):
+        self.mqtt.subscribe(self.command_topic)
         Entity.subscriptions[self.command_topic] = self
 
     def command(self, command):
-        self.controller.execute(self.device, command)
-
-    def publish_discovery(self, mqtt):
-        self.publish(mqtt, self.discovery_topic,
+        self.controller.execute(self.entity, command)
+        
+    def publish_discovery(self):
+        self.publish(self.discovery_topic,
                      self.discovery_payload, retain=True)
-        self.subscribe(mqtt)
+        self.subscribe()
 
-    def publish_availability(self, mqtt):
-        self.publish(mqtt, self.availability_topic, 'online')
+    def publish_availability(self):
+        self.publish(self.availability_topic, 'online')
 
-    def publish_state(self, mqtt):
+    def publish_state(self, state):
         if self.state:
             _LOGGER.debug(f'State for {self}: {self.state}')
-            self.publish(mqtt, self.state_topic, self.state)
+            self.publish(self.state_topic, self.state)
         else:
             _LOGGER.warning(f'No state available for {self}')
 
@@ -213,23 +260,17 @@ def run(config):
     mqtt.connect(host=credentials['host'],
                  port=int(credentials['port']))
     mqtt.loop_start()
-
+    
     controllers = discover()
     controller = next(controllers, None) or exit('no tellstick devices found')
 
-    def publish(entity):
-        entity.controller = controller
-        entity.publish_discovery(mqtt)
-        entity.publish_availability(mqtt)
-        entity.publish_state(mqtt)
+    entities = [Entity(e, mqtt, controller) for e in config]
+    for entity in entities:
+        entity.publish_discovery()
 
     for packet in controller.events():
-        match = config.get(make_key(packet))
-        if not match:
-            _LOGGER.warning('Skipping packet %s', packet)
-            continue
-        for entity in match:
-            publish(Entity(entity, packet))
+        if not any(e.recieve(packet) for e in entities):
+            _LOGGER.warning('Skipped packet %s', packet)        
 
     # FIXXE: Mark as unavailable if not heard from in time t (24 hours?)
     # FIXME: Use config expire in config (like 6 hours?)
