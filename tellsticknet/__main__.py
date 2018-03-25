@@ -29,7 +29,7 @@ from sys import argv, stdout, stderr, stdin
 from os.path import join, dirname, expanduser
 from os import environ as env
 from itertools import product
-from yaml import safe_load as load_yaml
+from yaml import safe_load_all as load_yaml
 
 from tellsticknet import __version__, TURNON, TURNOFF, UP, DOWN, STOP
 from tellsticknet.protocol import decode_packet
@@ -121,7 +121,7 @@ def read_config():
             config = join(directory, filename)
             _LOGGER.debug('checking for config file %s', config)
             with open(config) as config:
-                return load_yaml(config)
+                return list(load_yaml(config))
         except (IOError, OSError):
             continue
     return {}
