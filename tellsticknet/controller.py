@@ -101,7 +101,7 @@ class Controller:
         device = OrderedDict(protocol=device['protocol'],
                              model=device['model'],
                              house=device['house'],
-                             unit=device['unit']-1)
+                             unit=device['unit']-1)  # huh, why?
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             sock.setblocking(1)
