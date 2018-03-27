@@ -344,7 +344,7 @@ class Device:
         _LOGGER.debug(f'Publishing on {topic} (retain={retain}): {payload}')
         res, mid = self.mqtt.publish(topic, payload, retain=retain)
         if res == paho.MQTT_ERR_SUCCESS:
-            Device.subscriptions[mid] = self.topic
+            Device.subscriptions[mid] = topic
         else:
             _LOGGER.warning('Failure to publish on %s', topic)
 
