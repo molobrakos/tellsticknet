@@ -18,26 +18,22 @@ LEARN = 32
 UP = 128
 DOWN = 256
 STOP = 512
+RGBW = 1024
+THERMOSTAT = 2048
 
+TEMPERATURE = 'temp'
+HUMIDITY = 'humidity'
+RAINRATE = 'rrate'
+RAINTOTAL = 'rtot'
+WINDDIRECTION = 'wdir'
+WINDAVERAGE = 'wavg'
+WINDGUST = 'wgust'
+UV = 'uv'
+POWER = 'watt'
+LUMINANCE = 'lum'
+DEW_POINT = 'dewp'
+BAROMETRIC_PRESSURE = 'barpress'
 
-def async_listen(host, callback):
-
-    from .discovery import discover
-    from .controller import Controller
-
-    def listener():
-        h = host or next(discover(), [None])[0]
-
-        if not h:
-            _LOGGER.warning('No host to listen no')
-            return
-
-        _LOGGER.debug('Listening to host %s', h)
-
-        controller = Controller(*h[:2])
-
-        for packet in controller.events():
-            callback(packet)
-
-    from threading import Thread
-    Thread(target=listener).start()
+BATTERY_LOW = 255
+BATTERY_UNKNOWN = 254
+BATTERY_OK = 253
