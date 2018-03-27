@@ -37,7 +37,7 @@ from tellsticknet import (
     DEW_POINT,
     BAROMETRIC_PRESSURE)
 from tellsticknet.controller import discover
-from threading import Lock
+from threading import RLock
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -184,7 +184,7 @@ def on_message(client, userdata, message):
 class Device:
 
     subscriptions = {}
-    lock = Lock()
+    lock = RLock()
 
     def __init__(self, entity, mqtt, controller, sensor=None):
         self.entity = entity
@@ -351,6 +351,9 @@ class Device:
     @threadsafe
     def subscribe(self):
         _LOGGER.debug('Subscribing to %s', self.command_topic)
+        if Device.subscriptions.get(self.command_topic):
+            _LOGGER.debug('Already subscribed to %s', self.command_topic)
+            return
         res, mid = self.mqtt.subscribe(self.command_topic)
         if res == paho.MQTT_ERR_SUCCESS:
             Device.subscriptions[mid] = self.command_topic
