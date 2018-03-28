@@ -1,4 +1,4 @@
-# Methods
+# Commands/methods
 TURNON = 1
 TURNOFF = 2
 BELL = 4
