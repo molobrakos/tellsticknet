@@ -367,7 +367,7 @@ class Device:
         return SENSOR_NAMES.get(self.sensor)
 
 
-def run(config):
+def run(config, host):
     credentials = read_credentials()
     mqtt = paho.Client()
     mqtt.username_pw_set(username=credentials['username'],
@@ -384,7 +384,7 @@ def run(config):
                  port=int(credentials['port']))
     mqtt.loop_start()
 
-    controllers = discover()
+    controllers = discover(host)
     controller = next(controllers, None) or exit('no tellstick devices found')
 
     devices = [Device(e, mqtt, controller) for e in config]
@@ -393,6 +393,7 @@ def run(config):
             # Commands are visible directly, sensors when data available
             device.publish_discovery()
 
+    # For debugging, allow pipe a previous packet capture to stdin
     from sys import stdin
     from tellsticknet.protocol import decode_packet
     if not stdin.isatty():

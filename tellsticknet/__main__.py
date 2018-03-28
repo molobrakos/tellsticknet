@@ -190,4 +190,5 @@ if __name__ == "__main__":
     elif args['mqtt']:
         from tellsticknet.mqtt import run
         config = read_config()
-        run(config)
+        host = args['-H']
+        run(config, host=host)

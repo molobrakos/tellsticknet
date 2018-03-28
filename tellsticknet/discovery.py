@@ -23,7 +23,7 @@ def discover(host=DISCOVERY_ADDRESS, timeout=DISCOVERY_TIMEOUT):
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.settimeout(timeout.seconds)
 
-        sock.sendto(DISCOVERY_PAYLOAD, (host, DISCOVERY_PORT))
+        sock.sendto(DISCOVERY_PAYLOAD, (host or DISCOVERY_ADDRESS, DISCOVERY_PORT))
 
         while True:
             try:
