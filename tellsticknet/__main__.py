@@ -31,7 +31,7 @@ from os import environ as env
 from itertools import product
 from yaml import safe_load_all as load_yaml
 
-from tellsticknet import __version__, TURNON, TURNOFF, UP, DOWN, STOP
+from tellsticknet import __version__, const
 from tellsticknet.protocol import decode_packet
 from tellsticknet.controller import discover
 
@@ -163,13 +163,13 @@ if __name__ == "__main__":
 
         cmd = args['<cmd>']
         METHODS = dict(
-            on=TURNON,
-            turnon=TURNON,
-            off=TURNOFF,
-            turnoff=TURNOFF,
-            up=UP,
-            down=DOWN,
-            stop=STOP)
+            on=const.TURNON,
+            turnon=const.TURNON,
+            off=const.TURNOFF,
+            turnoff=const.TURNOFF,
+            up=const.UP,
+            down=const.DOWN,
+            stop=const.STOP)
         method = METHODS.get(cmd.lower()) or exit('method not found')
 
         name = args['<name>']

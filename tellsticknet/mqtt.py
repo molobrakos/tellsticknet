@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 # -*- mode: python; coding: utf-8 -*-
 
-# FIXME: Send commands via crontab
-# FIXME: Common config
-
 import logging
 from json import dumps as dump_json
 from os import environ as env
@@ -11,31 +8,7 @@ from os.path import join, expanduser
 from requests import certs
 from threading import current_thread
 import paho.mqtt.client as paho
-from tellsticknet import (
-    # FIXME: Namespace
-    # Methods
-    TURNON,
-    TURNOFF,
-    BELL,
-    TOGGLE,
-    DIM,
-    UP,
-    DOWN,
-    STOP,
-    RGBW,
-    # Sensors
-    TEMPERATURE,
-    HUMIDITY,
-    RAINRATE,
-    RAINTOTAL,
-    WINDDIRECTION,
-    WINDAVERAGE,
-    WINDGUST,
-    UV,
-    POWER,
-    LUMINANCE,
-    DEW_POINT,
-    BAROMETRIC_PRESSURE)
+import tellsticknet.const as const
 from tellsticknet.controller import discover
 from threading import RLock
 
@@ -49,53 +22,53 @@ STATE_ONLINE = 'online'
 STATE_OFFLINE = 'offline'
 
 STATES = {
-    TURNON: 'turnon',
-    TURNOFF: 'turnoff',
-    BELL: 'bell',
-    TOGGLE: 'toggle',
-    DIM: 'dim',
-    UP: 'up',
-    DOWN: 'down',
-    STOP: 'stop',
-    RGBW: 'rgbw',
+    const.TURNON: 'turnon',
+    const.TURNOFF: 'turnoff',
+    const.BELL: 'bell',
+    const.TOGGLE: 'toggle',
+    const.DIM: 'dim',
+    const.UP: 'up',
+    const.DOWN: 'down',
+    const.STOP: 'stop',
+    const.RGBW: 'rgbw',
 }
 
 SENSOR_ICONS = {
-    TEMPERATURE: 'mdi:thermometer',
-    HUMIDITY: 'mdi:water',
-    RAINRATE: 'mdi:water',
-    RAINTOTAL: 'mdi:water',
-    DEW_POINT: 'mdi:thermometer'
+    const.TEMPERATURE: 'mdi:thermometer',
+    const.HUMIDITY: 'mdi:water',
+    const.RAINRATE: 'mdi:water',
+    const.RAINTOTAL: 'mdi:water',
+    const.DEW_POINT: 'mdi:thermometer'
 }
 
 SENSOR_NAMES = {
-    TEMPERATURE: 'Temperature',
-    HUMIDITY: 'Humidity',
-    RAINRATE: 'Rain rate',
-    RAINTOTAL: 'Rain total',
-    WINDDIRECTION: 'Wind direction',
-    WINDAVERAGE: 'Wind average',
-    WINDGUST: 'Wind gust',
-    UV: 'UV',
-    POWER: 'Power',
-    LUMINANCE: 'Luminance',
-    DEW_POINT: 'Dew Point',
-    BAROMETRIC_PRESSURE: 'Barometric Pressure'
+    const.TEMPERATURE: 'Temperature',
+    const.HUMIDITY: 'Humidity',
+    const.RAINRATE: 'Rain rate',
+    const.RAINTOTAL: 'Rain total',
+    const.WINDDIRECTION: 'Wind direction',
+    const.WINDAVERAGE: 'Wind average',
+    const.WINDGUST: 'Wind gust',
+    const.UV: 'UV',
+    const.POWER: 'Power',
+    const.LUMINANCE: 'Luminance',
+    const.DEW_POINT: 'Dew Point',
+    const.BAROMETRIC_PRESSURE: 'Barometric Pressure'
 }
 
 SENSOR_UNITS = {
-    TEMPERATURE: '°C',
-    HUMIDITY: '%',
-    RAINRATE: 'mm/h',
-    RAINTOTAL: 'mm',
-    WINDDIRECTION: '',
-    WINDAVERAGE: 'm/s',
-    WINDGUST: 'm/s',
-    UV: 'UV',
-    POWER: 'W',
-    LUMINANCE: 'lx',
-    DEW_POINT: '°C',
-    BAROMETRIC_PRESSURE: 'kPa',
+    const.TEMPERATURE: '°C',
+    const.HUMIDITY: '%',
+    const.RAINRATE: 'mm/h',
+    const.RAINTOTAL: 'mm',
+    const.WINDDIRECTION: '',
+    const.WINDAVERAGE: 'm/s',
+    const.WINDGUST: 'm/s',
+    const.UV: 'UV',
+    const.POWER: 'W',
+    const.LUMINANCE: 'lx',
+    const.DEW_POINT: '°C',
+    const.BAROMETRIC_PRESSURE: 'kPa',
 }
 
 
@@ -156,9 +129,6 @@ def on_subscribe(client, userdata, mid, qos):
 @threadsafe
 def on_message(client, userdata, message):
     _LOGGER.info(f'Got message on {message.topic}: {message.payload}')
-    # FIXME: Other entities representing same device
-    # FIXME: Command topic does not make sense for all devices
-
     device = Device.subscriptions.get(message.topic)
 
     if not device:
@@ -166,12 +136,6 @@ def on_message(client, userdata, message):
         return
 
     payload = message.payload.decode()
-
-    # FIXME; mapping between
-    #  1) raw packet methods (integers, 1,2, etc)
-    #  2) command decoded methods (string, turnon etc)
-    #  3) MQTT states/methods (string, ON, OFF etc)
-
     method = method_for_str(payload)
 
     if method:
@@ -334,8 +298,8 @@ class Device:
         if self.is_sensor:
             res.update(unit_of_measurement=self.unit)
         if self.component in ['binary_sensor', 'switch', 'light']:
-            res.update(payload_on=STATES[TURNON],
-                       payload_off=STATES[TURNOFF])
+            res.update(payload_on=STATES[const.TURNON],
+                       payload_off=STATES[const.TURNOFF])
         return res
 
     @threadsafe
@@ -376,10 +340,10 @@ class Device:
                      retain=self.is_command)
 
     def maybe_invert(self, state):
-        if self.invert and state == TURNON:
-            return TURNOFF
-        elif self.invert and state == TURNOFF:
-            return TURNON
+        if self.invert and state == const.TURNON:
+            return const.TURNOFF
+        elif self.invert and state == const.TURNOFF:
+            return const.TURNON
         return state
 
     def publish_state(self, state):
