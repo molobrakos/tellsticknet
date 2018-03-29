@@ -141,11 +141,12 @@ def on_message(client, userdata, message):
     payload = message.payload.decode()
     method = method_for_str(payload)
 
-    if method:
-        device.command(method)
-        device.publish_state(payload)  # republish as new state
-    else:
-        _LOGGER.warning('Unknown method')
+    if not method:
+        _LOGGER.warning('Unknown method: %s', payload)
+        return
+
+    device.command(method)
+    device.publish_state(payload)  # republish as new state
 
 
 class Device:
@@ -193,13 +194,14 @@ class Device:
             self.publish_state(state)
         else:
             # Delegate to aggregate of sensors
-            self.sensors = {
-                item['name']: Device(
-                    self.entity,
-                    self.mqtt,
-                    self.controller,
-                    item['name'])
-                for item in packet['data']}
+            if not self.sensors:
+                self.sensors = {
+                    item['name']: Device(
+                        self.entity,
+                        self.mqtt,
+                        self.controller,
+                        item['name'])
+                    for item in packet['data']}
             for sensor in self.sensors.values():
                 sensor.receive(packet)
 
@@ -311,10 +313,10 @@ class Device:
         payload = dump_json(payload) if isinstance(payload, dict) else payload
         _LOGGER.debug(f'Publishing on {topic} (retain={retain}): {payload}')
         res, mid = self.mqtt.publish(topic, payload, retain=retain)
-        if res == paho.MQTT_ERR_SUCCESS:
-            Device.subscriptions[mid] = (topic, payload)
-        else:
+        if res != paho.MQTT_ERR_SUCCESS:
             _LOGGER.warning('Failure to publish on %s', topic)
+            return
+        Device.subscriptions[mid] = (topic, payload)
 
     @threadsafe
     def subscribe(self):
@@ -323,11 +325,11 @@ class Device:
             _LOGGER.debug('Already subscribed to %s', self.command_topic)
             return
         res, mid = self.mqtt.subscribe(self.command_topic)
-        if res == paho.MQTT_ERR_SUCCESS:
-            Device.subscriptions[mid] = self.command_topic
-            Device.subscriptions[self.command_topic] = self
-        else:
+        if res != paho.MQTT_ERR_SUCCESS:
             _LOGGER.warning('Failure to subscribe to %s', self.command_topic)
+            return
+        Device.subscriptions[mid] = self.command_topic
+        Device.subscriptions[self.command_topic] = self
 
     def command(self, command):
         self.controller.execute(self.entity, command)
@@ -356,11 +358,11 @@ class Device:
         _LOGGER.debug(f'State for {self}: {state}')
         # FIXME: Better to invert payload_foo in config?
         state = self.maybe_invert(state)
-        if state:
-            _LOGGER.debug(f'Publishing state for {self}: {state}')
-            self.publish(self.state_topic, state)
-        else:
+        if not state:
             _LOGGER.warning(f'No state available for {self}')
+            return
+        _LOGGER.debug(f'Publishing state for {self}: {state}')
+        self.publish(self.state_topic, state)
 
     @property
     def unit(self):
@@ -396,7 +398,8 @@ def run(config, host):
     controllers = discover(host)
     controller = next(controllers, None) or exit('no tellstick devices found')
 
-    # FIXME: Make it possible to have more components with same component type but different device_class_etc
+    # FIXME: Make it possible to have more components with same component
+    # type but different device_class_etc
     devices = [Device(e, mqtt, controller)
                for e in config
                if e.get('controller',

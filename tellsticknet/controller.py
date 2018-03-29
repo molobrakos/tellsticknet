@@ -21,7 +21,8 @@ def discover(host=None):
     Return all found controllers on the local network
     N.b this method blocks
     """
-    return (Controller(*controller[:2]) for controller in discovery.discover(host))
+    return (Controller(*controller[:2])
+            for controller in discovery.discover(host))
 
 
 class Controller:
