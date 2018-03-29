@@ -1,3 +1,4 @@
+# Commands/methods
 TURNON = 1
 TURNOFF = 2
 BELL = 4
@@ -10,6 +11,7 @@ STOP = 512
 RGBW = 1024
 THERMOSTAT = 2048
 
+# Sensor types
 TEMPERATURE = 'temp'
 HUMIDITY = 'humidity'
 RAINRATE = 'rrate'
@@ -23,6 +25,7 @@ LUMINANCE = 'lum'
 DEW_POINT = 'dewp'
 BAROMETRIC_PRESSURE = 'barpress'
 
+# Battery status
 BATTERY_LOW = 255
 BATTERY_UNKNOWN = 254
 BATTERY_OK = 253
