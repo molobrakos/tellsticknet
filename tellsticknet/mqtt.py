@@ -387,7 +387,11 @@ def run(config, host):
     controllers = discover(host)
     controller = next(controllers, None) or exit('no tellstick devices found')
 
-    devices = [Device(e, mqtt, controller) for e in config]
+    devices = [Device(e, mqtt, controller)
+               for e in config
+               if e.get('controller',
+                        controller._mac) in (controller._ip,
+                                             controller._mac)]
     for device in devices:
         if device.is_command:
             # Commands are visible directly, sensors when data available
