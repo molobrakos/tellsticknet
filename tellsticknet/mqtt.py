@@ -182,7 +182,6 @@ class Device:
             self.publish_availability()
             self.publish_state(state)
         elif self.is_sensor:
-            print(packet['data'])
             state = next(item['value']
                          for item in packet['data']
                          if item['name'] == self.sensor)
