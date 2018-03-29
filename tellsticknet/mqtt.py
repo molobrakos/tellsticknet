@@ -189,8 +189,7 @@ class Device:
             state = next(item['value']
                          for item in packet['data']
                          if item['name'] == self.sensor)
-            self.publish_discovery()
-            self.publish_availability()
+            self.publish_discovery()  # imples availability
             self.publish_state(state)
         else:
             # Delegate to aggregate of sensors
