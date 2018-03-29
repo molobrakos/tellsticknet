@@ -224,7 +224,7 @@ class Device:
 
     @property
     def optimistic(self):
-        return self.entity.get('optimistic')
+        return self.entity.get('optimistic', True)
 
     @property
     def invert(self):
@@ -288,17 +288,18 @@ class Device:
                    payload_not_available=STATE_OFFLINE)
         if self.command_topic:
             res.update(command_topic=self.command_topic)
-        if self.optimistic:
-            res.update(optimistic=self.optimistic)
         if self.device_class:
             res.update(device_class=self.device_class)
         if self.icon:
             res.update(icon=self.icon)
         if self.is_sensor:
             res.update(unit_of_measurement=self.unit)
+        if self.is_command:
+            res.update(optimistic=self.optimistic)
         if self.component in ['binary_sensor', 'switch', 'light']:
             res.update(payload_on=STATES[const.TURNON],
                        payload_off=STATES[const.TURNOFF])
+        # FIXME: Missing components: cover etc
         return res
 
     @threadsafe
@@ -383,6 +384,7 @@ def run(config, host):
                  port=int(credentials['port']))
     mqtt.loop_start()
 
+    # FIXME: Allow multiple controllers on same network (just loop in init)
     controllers = discover(host)
     controller = next(controllers, None) or exit('no tellstick devices found')
 
