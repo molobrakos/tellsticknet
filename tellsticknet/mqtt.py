@@ -33,6 +33,9 @@ STATES = {
     const.RGBW: 'rgbw',
 }
 
+STATE_ON = STATES[const.TURNON]
+STATE_OFF = STATES[const.TURNOFF]
+
 SENSOR_ICONS = {
     const.TEMPERATURE: 'mdi:thermometer',
     const.HUMIDITY: 'mdi:water',
@@ -209,8 +212,9 @@ class Device:
     @property
     def name(self):
         if self.is_sensor:
-            return '{name} {quantity}'.format(name=self.entity.get('name'),
-                                              quantity=self.quantity_name)
+            return '{name} {quantity}'.format(
+                name=self.entity.get('name'),
+                quantity=self.quantity_name)
         return self.entity.get('name')
 
     @property
@@ -228,7 +232,7 @@ class Device:
 
     @property
     def invert(self):
-        return self.entity.get('invert')
+        return self.entity.get('invert', False)
 
     @property
     def visible_name(self):
@@ -297,8 +301,8 @@ class Device:
         if self.is_command:
             res.update(optimistic=self.optimistic)
         if self.component in ['binary_sensor', 'switch', 'light']:
-            res.update(payload_on=STATES[const.TURNON],
-                       payload_off=STATES[const.TURNOFF])
+            res.update(payload_on=STATE_ON,
+                       payload_off=STATE_OFF)
         # FIXME: Missing components: cover etc
         return res
 
@@ -340,16 +344,20 @@ class Device:
                      retain=self.is_command)
 
     def maybe_invert(self, state):
-        if self.invert and state == const.TURNON:
-            return const.TURNOFF
-        elif self.invert and state == const.TURNOFF:
-            return const.TURNON
+        if self.invert and state in [STATE_ON, STATE_OFF]:
+            _LOGGER.debug(f'Inverting {state}')
+        if self.invert and state == STATE_ON:
+            return STATE_OFF
+        elif self.invert and state == STATE_OFF:
+            return STATE_ON
         return state
 
     def publish_state(self, state):
+        _LOGGER.debug(f'State for {self}: {state}')
+        # FIXME: Better to invert payload_foo in config?
         state = self.maybe_invert(state)
         if state:
-            _LOGGER.debug(f'State for {self}: {state}')
+            _LOGGER.debug(f'Publishing state for {self}: {state}')
             self.publish(self.state_topic, state)
         else:
             _LOGGER.warning(f'No state available for {self}')
@@ -388,6 +396,7 @@ def run(config, host):
     controllers = discover(host)
     controller = next(controllers, None) or exit('no tellstick devices found')
 
+    # FIXME: Make it possible to have more components with same component type but different device_class_etc
     devices = [Device(e, mqtt, controller)
                for e in config
                if e.get('controller',
