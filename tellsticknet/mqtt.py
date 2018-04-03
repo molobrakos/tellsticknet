@@ -303,8 +303,7 @@ class Device:
 
     @property
     def topic(self):
-        return make_topic(STATE_PREFIX,
-                          self.controller._mac,
+        return make_topic(self.controller_topic,
                           self.unique_id)
 
     @property
@@ -437,8 +436,9 @@ def run(config, host):
     devices = [Device(e, mqtt, controller)
                for e in config
                if e.get('controller',
-                        controller._mac) in (controller._ip,
-                                             controller._mac)]
+                        controller._mac).lower() in (
+                            controller._ip,
+                            controller._mac)]
     for device in devices:
         if device.is_command:
             # Commands are visible directly, sensors when data available

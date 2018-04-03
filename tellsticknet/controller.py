@@ -30,7 +30,7 @@ class Controller:
     def __init__(self, ip, mac):
         _LOGGER.debug("creating controller with address %s (%s)", ip, mac)
         self._ip = ip
-        self._mac = mac
+        self._mac = mac.lower()
         self._last_registration = None
         self._stop = False
 
