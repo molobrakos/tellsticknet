@@ -105,6 +105,7 @@ def read_credentials():
                     username=d['username'],
                     password=d['pw'])
 
+
 def make_hass_single_topic_level(s):
     """Transform a multi level topic to a single level.
 
@@ -118,12 +119,14 @@ def make_hass_single_topic_level(s):
 def make_topic(*levels):
     """Create a valid topic.
 
-    >>> make_topic('foo', 'bar'):
+    >>> make_topic('foo', 'bar')
     'foo/bar'
 
-    >>> make_topic(('foo', 'bar')):
+    >>> make_topic(('foo', 'bar'))
     'foo/bar'
     """
+    if len(levels) == 1 and isinstance(levels[0], tuple):
+        return make_topic(*levels[0])
     return '/'.join(levels)
 
 
