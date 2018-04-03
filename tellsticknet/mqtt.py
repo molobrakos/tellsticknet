@@ -105,6 +105,27 @@ def read_credentials():
                     username=d['username'],
                     password=d['pw'])
 
+def make_hass_single_topic_level(s):
+    """Transform a multi level topic to a single level.
+
+    >>> make_hass_single_topic_level('foo/bar/baz')
+    'foo_bar_baz'
+    """
+
+    return s.replace('/', '_')
+
+
+def make_topic(*levels):
+    """Create a valid topic.
+
+    >>> make_topic('foo', 'bar'):
+    'foo/bar'
+
+    >>> make_topic(('foo', 'bar')):
+    'foo/bar'
+    """
+    return '/'.join(levels)
+
 
 @threadsafe
 def on_connect(client, userdata, flags, rc):
@@ -254,35 +275,49 @@ class Device:
 
     @property
     def unique_id(self):
-        return ('{class}_{protocol}_{model}_{house}_{unit}'
+        return ('{class}/{protocol}/{model}/{house}/{unit}'
                 if self.is_command else
-                '{class}_{protocol}_{model}_{sensorId}_{sensor}').format(
+                '{class}/{protocol}/{model}/{sensorId}/{sensor}').format(
                     sensor=self.sensor, **self.entity)
 
     @property
-    def node_id(self):
-        return f'{STATE_PREFIX}_{self.controller._mac}'
+    def controller_topic(self):
+        return make_topic(STATE_PREFIX,
+                          self.controller._mac)
+
+    @property
+    def discovery_object_id(self):
+        return make_hass_single_topic_level(self.unique_id)
+
+    @property
+    def discovery_node_id(self):
+        return make_hass_single_topic_level(self.controller_topic)
 
     @property
     def discovery_topic(self):
-        return (f'{DISCOVERY_PREFIX}/{self.component}/'
-                f'{self.node_id}/{self.unique_id}/config')
+        return make_topic(DISCOVERY_PREFIX,
+                          self.component,
+                          self.discovery_node_id,
+                          self.discovery_object_id,
+                          'config')
 
     @property
     def topic(self):
-        return f'{STATE_PREFIX}/{self.controller._mac}/{self.unique_id}'
+        return make_topic(STATE_PREFIX,
+                          self.controller._mac,
+                          self.unique_id)
 
     @property
     def state_topic(self):
-        return f'{self.topic}/state'
+        return make_topic(self.topic, 'state')
 
     @property
     def availability_topic(self):
-        return f'{self.topic}/avail'
+        return make_topic(self.topic, 'avail')
 
     @property
     def command_topic(self):
-        return f'{self.topic}/set'
+        return make_topic(self.topic, 'set')
 
     @property
     def discovery_payload(self):
