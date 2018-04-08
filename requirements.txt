@@ -1,4 +1,5 @@
 docopt
+setuptools
 requests
 pyyaml
 paho-mqtt
