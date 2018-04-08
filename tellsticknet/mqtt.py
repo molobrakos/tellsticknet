@@ -12,6 +12,7 @@ import tellsticknet.const as const
 from tellsticknet.controller import discover
 from threading import RLock
 
+# FIXME: A command can correspond to multiple entities (e.g. switches/lights)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -112,7 +113,6 @@ def make_hass_single_topic_level(s):
     >>> make_hass_single_topic_level('foo/bar/baz')
     'foo_bar_baz'
     """
-
     return s.replace('/', '_')
 
 
@@ -278,10 +278,13 @@ class Device:
 
     @property
     def unique_id(self):
-        return ('{class}/{protocol}/{model}/{house}/{unit}'
-                if self.is_command else
-                '{class}/{protocol}/{model}/{sensorId}/{sensor}').format(
-                    sensor=self.sensor, **self.entity)
+        if self.is_command:
+            return '{class}/{protocol}/{model}/{house}/{unit}'.format(
+                **self.entity)
+        elif self.is_sensor:
+            return '{class}/{protocol}/{model}/{sensorId}/{sensor}'.format(
+                sensor=self.sensor, **self.entity)
+        _LOGGER.error('No template')
 
     @property
     def controller_topic(self):
@@ -349,10 +352,10 @@ class Device:
         payload = dump_json(payload) if isinstance(payload, dict) else payload
         _LOGGER.debug(f'Publishing on {topic} (retain={retain}): {payload}')
         res, mid = self.mqtt.publish(topic, payload, retain=retain)
-        if res != paho.MQTT_ERR_SUCCESS:
+        if res == paho.MQTT_ERR_SUCCESS:
+            Device.subscriptions[mid] = (topic, payload)
+        else:
             _LOGGER.warning('Failure to publish on %s', topic)
-            return
-        Device.subscriptions[mid] = (topic, payload)
 
     @threadsafe
     def subscribe(self):
@@ -361,11 +364,11 @@ class Device:
             _LOGGER.debug('Already subscribed to %s', self.command_topic)
             return
         res, mid = self.mqtt.subscribe(self.command_topic)
-        if res != paho.MQTT_ERR_SUCCESS:
+        if res == paho.MQTT_ERR_SUCCESS:
+            Device.subscriptions[mid] = self.command_topic
+            Device.subscriptions[self.command_topic] = self
+        else:
             _LOGGER.warning('Failure to subscribe to %s', self.command_topic)
-            return
-        Device.subscriptions[mid] = self.command_topic
-        Device.subscriptions[self.command_topic] = self
 
     def command(self, command):
         self.controller.execute(self.entity, command)
