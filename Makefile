@@ -3,7 +3,7 @@ IMAGE=tellsticknet
 build:
 	docker build -t $(IMAGE) .
 
-docker-run:
+docker-run-mqtt:
 	docker run \
 		-ti --rm \
 		--net=host \
