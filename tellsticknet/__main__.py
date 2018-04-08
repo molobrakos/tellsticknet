@@ -159,7 +159,7 @@ if __name__ == "__main__":
     elif args['send']:
         controller = (next(discover(), None)
                       or exit('No tellstick devices found'))
-        config = [e for x in read_config().values() for e in x]
+        config = read_config()
 
         cmd = args['<cmd>']
         METHODS = dict(
