@@ -88,7 +88,17 @@ def threadsafe(function):
 
 
 def method_for_str(s):
-    """Map 'turnon' -> TURNON=1, 'turnoff' -> TURNOFF=2, etc."""
+    """Map 'turnon' -> TURNON=1 etc.
+
+    >>> method_for_str('turnon')
+    1
+
+    >>> method_for_str('turnoff')
+    2
+
+    >>> method_for_str('foobar')
+    None
+    """
     return next((k for k, v in STATES.items()
                  if s == v),
                 None)
