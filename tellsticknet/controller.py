@@ -1,7 +1,7 @@
 import socket
 import logging
 from datetime import datetime, timedelta
-from time import time
+from time import time, sleep
 from . import discovery
 from .protocol import encode_packet, decode_packet
 
@@ -97,7 +97,15 @@ class Controller:
 
             yield packet
 
-    def execute(self, device, method):
+    def execute(self, device, method, repeat=5, async=False):
+        if async:
+            from threading import Thread
+            Thread(target=lambda: self.execute(device,
+                                               method,
+                                               repeat=repeat,
+                                               async=False),
+                   name='Executor').start()
+            return
         from collections import OrderedDict
         device = OrderedDict(protocol=device['protocol'],
                              model=device['model'],
@@ -106,4 +114,7 @@ class Controller:
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             sock.setblocking(1)
-            self._send(sock, 'send', **device, method=method)
+            for i in range(0, repeat):
+                if i != 0:
+                    sleep(1)
+                self._send(sock, 'send', **device, method=method)

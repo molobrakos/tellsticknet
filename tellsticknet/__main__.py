@@ -186,7 +186,7 @@ if __name__ == "__main__":
         elif protocol and model and house and unit:
             pass  # FIXME
         for device in devices:
-            controller.execute(device, method)
+            controller.execute(device, method, async=True)
     elif args['mqtt']:
         from tellsticknet.mqtt import run
         config = read_config()

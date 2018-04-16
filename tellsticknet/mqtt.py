@@ -381,7 +381,7 @@ class Device:
             _LOGGER.warning('Failure to subscribe to %s', self.command_topic)
 
     def command(self, command):
-        self.controller.execute(self.entity, command)
+        self.controller.execute(self.entity, command, async=True)
 
     def publish_discovery(self, items=None):
         self.publish(self.discovery_topic,
