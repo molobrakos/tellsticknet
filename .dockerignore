@@ -1,0 +1,6 @@
+*
+!requirements.txt
+!tellsticknet
+!script/tellsticknet
+**/__pycache__
+**/*~
