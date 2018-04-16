@@ -97,7 +97,7 @@ def method_for_str(s):
     2
 
     >>> method_for_str('foobar')
-    None
+
     """
     return next((k for k, v in STATES.items()
                  if s == v),
