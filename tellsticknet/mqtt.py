@@ -338,6 +338,7 @@ class Device:
     def discovery_payload(self):
         res = dict(name=self.visible_name,
                    state_topic=self.state_topic,
+                   retain=True,
                    availability_topic=self.availability_topic,
                    payload_available=STATE_ONLINE,
                    payload_not_available=STATE_OFFLINE)
@@ -411,7 +412,7 @@ class Device:
             _LOGGER.warning(f'No state available for {self}')
             return
         _LOGGER.debug(f'Publishing state for {self}: {state}')
-        self.publish(self.state_topic, state)
+        self.publish(self.state_topic, state, retain=self.is_command)
 
     @property
     def unit(self):
