@@ -461,21 +461,21 @@ def run(config, host):
             # Commands are visible directly, sensors when data available
             device.publish_discovery()
 
-    # For debugging, allow pipe a previous packet capture to stdin
-    # FIXME: flag instead
-    #from sys import stdin
-    #from tellsticknet.protocol import decode_packet
-    #if not stdin.isatty():
-    #    for line in stdin.readlines():
-    #        line = line.strip()
-    #        timestamp, line = line.split(' ', 1)
-    #        packet = decode_packet(line)
-    #        if packet is None:
-    #            continue
-    #        if not any(d.receive(packet) for d in devices):
-    #            _LOGGER.warning('Skipped packet %s', packet)
-    #        print(packet)
-    #    exit(0)
+    #  For debugging, allow pipe a previous packet capture to stdin
+    #  FIXME: flag instead
+    #  from sys import stdin
+    #  from tellsticknet.protocol import decode_packet
+    #  if not stdin.isatty():
+    #      for line in stdin.readlines():
+    #          line = line.strip()
+    #          timestamp, line = line.split(' ', 1)
+    #          packet = decode_packet(line)
+    #          if packet is None:
+    #              continue
+    #          if not any(d.receive(packet) for d in devices):
+    #              _LOGGER.warning('Skipped packet %s', packet)
+    #          print(packet)
+    #      exit(0)
 
     for packet in controller.events():
         if not any(d.receive(packet) for d in devices):
