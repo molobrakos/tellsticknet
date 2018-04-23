@@ -147,6 +147,6 @@ class Controller:
                 pass
 
             for (device, method, repeat) in list(pending_commands.values()):
-                _LOGGER.debug('Sending time %d', repeat+1)
+                _LOGGER.debug('Sending time %d', repeat)
                 self._execute(device, method)
                 defer(device, method, repeat-1)
