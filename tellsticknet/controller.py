@@ -2,6 +2,9 @@ import socket
 import logging
 from datetime import datetime, timedelta
 from time import time, sleep
+from threading import Thread
+from collections import OrderedDict
+from queue import Queue, Empty
 from . import discovery
 from .protocol import encode_packet, decode_packet
 
@@ -12,6 +15,9 @@ TIMEOUT = timedelta(seconds=5)
 # shouldn't really be neccessary byt sometimes the connections seems
 # to get lost
 REGISTRATION_INTERVAL = timedelta(minutes=10)
+
+COMMAND_REPEAT_TIMES = 5
+COMMAND_REPEAT_DELAY = timedelta(seconds=1)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -33,6 +39,11 @@ class Controller:
         self._mac = mac.lower()
         self._last_registration = None
         self._stop = False
+        self._commands = Queue()
+        Thread(target=self._async_executor,
+               name='SenderThread',
+               daemon=True
+        ).start()
 
     def __repr__(self):
         return f'Controller@{self._ip} ({self._mac})'
@@ -97,24 +108,44 @@ class Controller:
 
             yield packet
 
-    def execute(self, device, method, repeat=5, async=False):
-        if async:
-            from threading import Thread
-            Thread(target=lambda: self.execute(device,
-                                               method,
-                                               repeat=repeat,
-                                               async=False),
-                   name='Executor').start()
-            return
-        from collections import OrderedDict
+    def _execute(self, device, method):
         device = OrderedDict(protocol=device['protocol'],
                              model=device['model'],
                              house=device['house'],
                              unit=device['unit']-1)  # huh, why?
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            sock.setblocking(1)
+            sock.setblocking(1) 
+            self._send(sock, 'send', **device, method=method)
+
+    def execute(self, device, method, repeat=COMMAND_REPEAT_TIMES, async=False):
+        if async:
+            self._commands.put((device, method, repeat))
+        else:
             for i in range(0, repeat):
-                if i != 0:
-                    sleep(1)
-                self._send(sock, 'send', **device, method=method)
+                sleep(COMMAND_REPEAT_DELAY.seconds if i else 0)
+                _LOGGER.debug('Sending time %d', i+1)
+                self._execute(device, method)
+
+    def _async_executor(self):
+        pending_commands = {}
+
+        def defer(device, method, repeat):
+            key = tuple(device.values())
+            if repeat:
+                pending_commands[key] = (device, method, repeat)
+            else:
+                pending_commands.pop(key)
+
+        while True:
+            try:
+                defer(*self._commands.get(
+                    timeout=COMMAND_REPEAT_DELAY.seconds if pending_commands else None))
+            except Empty:
+                pass
+
+            for (device, method, repeat) in list(pending_commands.values()):
+                _LOGGER.debug('Sending time %d', repeat+1)
+                self._execute(device, method)
+                defer(device, method, repeat-1)
+
