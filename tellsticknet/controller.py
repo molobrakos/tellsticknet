@@ -42,8 +42,7 @@ class Controller:
         self._commands = Queue()
         Thread(target=self._async_executor,
                name='SenderThread',
-               daemon=True
-        ).start()
+               daemon=True).start()
 
     def __repr__(self):
         return f'Controller@{self._ip} ({self._mac})'
@@ -115,10 +114,12 @@ class Controller:
                              unit=device['unit']-1)  # huh, why?
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            sock.setblocking(1) 
+            sock.setblocking(1)
             self._send(sock, 'send', **device, method=method)
 
-    def execute(self, device, method, repeat=COMMAND_REPEAT_TIMES, async=False):
+    def execute(self, device, method,
+                repeat=COMMAND_REPEAT_TIMES,
+                async=False):
         if async:
             self._commands.put((device, method, repeat))
         else:
@@ -140,7 +141,8 @@ class Controller:
         while True:
             try:
                 defer(*self._commands.get(
-                    timeout=COMMAND_REPEAT_DELAY.seconds if pending_commands else None))
+                    timeout=COMMAND_REPEAT_DELAY.seconds if pending_commands
+                    else None))
             except Empty:
                 pass
 
@@ -148,4 +150,3 @@ class Controller:
                 _LOGGER.debug('Sending time %d', repeat+1)
                 self._execute(device, method)
                 defer(device, method, repeat-1)
-
