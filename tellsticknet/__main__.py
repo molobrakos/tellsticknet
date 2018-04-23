@@ -7,6 +7,8 @@ Usage:
   tellsticknet --version
   tellsticknet [-v|-vv] [options] discover
   tellsticknet [-v|-vv] [options] listen [--raw]
+  tellsticknet [-v|-vv] [options] devices
+  tellsticknet [-v|-vv] [options] sensors
   tellsticknet [-v|-vv] [options] send <name> <cmd>
   tellsticknet [-v|-vv] [options] send <protocol> <model> <house> <unit> <cmd>
   tellsticknet [-v|-vv] [options] mqtt
@@ -156,6 +158,12 @@ if __name__ == "__main__":
             print(c)
     elif args['listen']:
         print_event_stream(raw=args['--raw'])
+    elif args['devices']:
+        for e in (e for e in read_config() if e['class'] == 'command'):
+            print('-', e['name'])
+    elif args['sensors']:
+        for e in (e for e in read_config() if e['class'] == 'sensor'):
+            print('-', e['name'])
     elif args['send']:
         controller = (next(discover(), None)
                       or exit('No tellstick devices found'))
@@ -186,7 +194,7 @@ if __name__ == "__main__":
         elif protocol and model and house and unit:
             pass  # FIXME
         for device in devices:
-            controller.execute(device, method, async=True)
+            controller.execute(device, method)
     elif args['mqtt']:
         from tellsticknet.mqtt import run
         config = read_config()
