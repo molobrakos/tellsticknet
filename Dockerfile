@@ -21,8 +21,4 @@ RUN pip --no-cache-dir --trusted-host pypi.org install -r requirements.txt color
 
 USER tellstick
 
-RUN ls -al
-
 COPY . ./
-
-RUN ls -al && find
