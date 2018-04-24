@@ -179,8 +179,8 @@ def on_message(client, userdata, message):
         _LOGGER.warning('Unknown method: %s', payload)
         return
 
-    device.command(method)
     device.publish_state(payload)  # republish as new state
+    device.command(method)
 
 
 class Device:
