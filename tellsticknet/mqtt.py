@@ -405,7 +405,6 @@ class Device:
         return state
 
     def publish_state(self, state):
-        _LOGGER.debug(f'State for {self}: {state}')
         # FIXME: Better to invert payload_foo in config?
         state = self.maybe_invert(state)
         if not state:
