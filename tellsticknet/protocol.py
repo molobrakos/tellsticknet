@@ -7,11 +7,11 @@ import logging
 _LOGGER = logging.getLogger(__name__)
 
 
-TAG_INTEGER = "i"
-TAG_DICT = "h"
-TAG_LIST = "l"
-TAG_END = "s"
-TAG_SEP = ":"
+TAG_INTEGER = b"i"
+TAG_DICT = b"h"
+TAG_LIST = b"l"
+TAG_END = b"s"
+TAG_SEP = b":"
 
 
 def _expect(condition):
@@ -37,7 +37,7 @@ def _encode_string(s):
         ...
     TypeError: object of type 'int' has no len()
     """
-    return "%X%s%s" % (len(s), TAG_SEP, s)
+    return b"%X%s%s" % (len(s), TAG_SEP, s.encode())
 
 
 def _encode_integer(d):
@@ -56,7 +56,7 @@ def _encode_integer(d):
     >>> _encode_integer(3.3)
     'i3s'
     """
-    return "%s%x%s" % (TAG_INTEGER, int(d), TAG_END)
+    return b"%s%x%s" % (TAG_INTEGER, int(d), TAG_END)
 
 
 def _encode_dict(d):
@@ -83,15 +83,16 @@ def _encode_dict(d):
     """
     _expect(isinstance(d, dict))
 
-    return "%s%s%s" % (
+    return b"%s%s%s" % (
         TAG_DICT,
-        "".join(_encode_any(x)
-                for keyval in d.items()
-                for x in keyval),
+        b"".join(_encode_any(x)
+                 for keyval in d.items()
+                 for x in keyval),
         TAG_END)
 
 
 def _encode_list(l):
+    """https://developer.telldus.com/doxygen/html/TellStickNet.html"""
     raise NotImplementedError()
 
 
@@ -104,6 +105,8 @@ def _encode_any(t):
         return _encode_dict(t)
     elif isinstance(t, list):
         return _encode_list(t)
+    elif isinstance(t, bytes):
+        return t
     else:
         raise NotImplementedError()
 
@@ -121,7 +124,7 @@ def encode_packet(command, **args):
     res = _encode_string(command)
     if args:
         res += _encode_dict(args)
-    return res.encode("ascii")
+    return res
 
 
 def _decode_string(packet):
@@ -286,6 +289,13 @@ def _decode(**packet):
                           protocol, packet["data"],
                           modname, SRC_URL)
         raise
+
+
+def encode(**device):
+    protocol = device.pop('protocol')
+    _LOGGER.debug('Encoding for protocol %s', protocol)
+    protocol = get_protocol(protocol)
+    return protocol.encode(**device)
 
 
 def _decode_command(packet):
