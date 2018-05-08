@@ -7,11 +7,11 @@ import logging
 _LOGGER = logging.getLogger(__name__)
 
 
-TAG_INTEGER = b"i"
-TAG_DICT = b"h"
-TAG_LIST = b"l"
-TAG_END = b"s"
-TAG_SEP = b":"
+TAG_INTEGER = ord('i')
+TAG_DICT = ord('h')
+TAG_LIST = ord('l')
+TAG_END = ord('s')
+TAG_SEP = ord(':')
 
 
 def _expect(condition):
@@ -37,7 +37,7 @@ def _encode_bytes(s):
         ...
     TypeError: object of type 'int' has no len()
     """
-    return b"%X%s%s" % (len(s), TAG_SEP, s)
+    return b"%X%c%s" % (len(s), TAG_SEP, s)
 
 
 def _encode_string(s):
@@ -77,7 +77,7 @@ def _encode_integer(d):
     >>> _encode_integer(3.3)
     'i3s'
     """
-    return b"%s%x%s" % (TAG_INTEGER, int(d), TAG_END)
+    return b"%c%x%s" % (TAG_INTEGER, int(d), TAG_END)
 
 
 def _encode_dict(d):
@@ -104,7 +104,7 @@ def _encode_dict(d):
     """
     _expect(isinstance(d, dict))
 
-    return b"%s%s%s" % (
+    return b"%c%s%c" % (
         TAG_DICT,
         b"".join(_encode_any(x)
                  for keyval in d.items()
@@ -170,11 +170,11 @@ def _decode_string(packet):
     _expect(sep > 0)
     length = packet[:sep]
     length = int(length, 16)
-    start = len(TAG_SEP) + sep
+    start = 1 + sep
     end = start + length
     _expect(end <= len(packet))
     val = packet[start:end]
-    return val, packet[end:]
+    return val.decode(), packet[end:]
 
 
 def _decode_integer(packet):
@@ -209,7 +209,7 @@ def _decode_integer(packet):
     (0, '')
     """
     _expect(packet[0] == TAG_INTEGER)
-    packet = packet[len(TAG_INTEGER):]
+    packet = packet[1:]
     end = packet.find(TAG_END)
     _expect(end > 0)
     val = packet[:end]
@@ -217,7 +217,7 @@ def _decode_integer(packet):
     # but invalid according to specification
     # _expect(val[0] != "0" or len(val) == 1)
     _expect(val[0] != "-" or val[1] != "0")
-    return int(val, 16), packet[end + len(TAG_END):]
+    return int(val, 16), packet[end + 1:]
 
 
 def _decode_dict(packet):
@@ -293,7 +293,9 @@ def _decode(**packet):
         # convert data={temp=42, humidity=38} to
         # data=[{name=temp, value=42},{name=humidity, valye=38}]
 
-        if packet and 'data' in packet:
+        if (packet and
+            'data' in packet and
+            isinstance(packet['data'], dict)):
             packet['data'] = [
                 dict(name=name,
                      value=value)
@@ -344,12 +346,14 @@ def decode_packet(packet):
 
     >>> packet = "7:RawDatah8:protocolC:everflourish4:dataiA1CC92ss"
     """
+    if isinstance(packet, str):
+        packet = packet.encode()
     try:
         command, args = _decode_command(packet)
         if command == 'zwaveinfo':
             _LOGGER.info('Got Z-Wave info packet')
             _LOGGER.debug('%s %s', command, args)
-        elif command == "RawData":
+        elif command == 'RawData':
             return _decode(**args)
         else:
             raise NotImplementedError()
