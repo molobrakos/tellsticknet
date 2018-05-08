@@ -5,7 +5,7 @@ docker-build:
 
 docker-run-mqtt:
 	docker run \
-	        --name tellsticknet \
+                --name tellsticknet \
 		--restart always \
 		--detach \
 		--net=host \
@@ -16,7 +16,8 @@ docker-run-mqtt:
 docker-run-mqtt-term:
 	docker run \
 		-ti --rm \
+                --name tellsticknet \
 		--net=host \
 		-v $(HOME)/.config/mosquitto_pub:/app/.config/mosquitto_pub:ro \
 		-v $(HOME)/.tellsticknet.conf:/app/tellsticknet.conf:ro \
-		$(IMAGE) ./script/tellsticknet mqtt -vv
+		$(IMAGE) -vv
