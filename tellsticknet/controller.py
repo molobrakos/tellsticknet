@@ -114,7 +114,7 @@ class Controller:
 
         packet = encode(**device, method=method, param=param)
 
-        if isinstance(packet, str):
+        if isinstance(packet, bytes):
             packet = dict(S=packet)
 
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
