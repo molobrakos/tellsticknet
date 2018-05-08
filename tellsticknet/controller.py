@@ -3,10 +3,9 @@ import logging
 from datetime import datetime, timedelta
 from time import time, sleep
 from threading import Thread
-from collections import OrderedDict
 from queue import Queue, Empty
 from . import discovery
-from .protocol import encode_packet, decode_packet
+from .protocol import encode_packet, decode_packet, encode
 
 COMMAND_PORT = 42314
 TIMEOUT = timedelta(seconds=5)
@@ -16,7 +15,7 @@ TIMEOUT = timedelta(seconds=5)
 # to get lost
 REGISTRATION_INTERVAL = timedelta(minutes=10)
 
-COMMAND_REPEAT_TIMES = 5
+COMMAND_REPEAT_TIMES = 2
 COMMAND_REPEAT_DELAY = timedelta(seconds=1)
 
 _LOGGER = logging.getLogger(__name__)
@@ -107,34 +106,41 @@ class Controller:
 
             yield packet
 
-    def _execute(self, device, method):
-        device = OrderedDict(protocol=device['protocol'],
-                             model=device['model'],
-                             house=device['house'],
-                             unit=device['unit']-1)  # huh, why?
+    def _execute(self, device, method, param=None):
+        """arctech on/off implemented in firmware here:
+         https://github.com/telldus/tellstick-net/blob/master/firmware/tellsticknet.c#L58
+         https://github.com/telldus/tellstick-net/blob/master/firmware/transmit_arctech.c
+        """
+
+        packet = encode(**device, method=method, param=param)
+
+        if isinstance(packet, str):
+            packet = dict(S=packet)
+
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             sock.setblocking(1)
-            self._send(sock, 'send', **device, method=method)
+            self._send(sock, 'send', **packet)
 
     def execute(self, device, method,
+                param=None,
                 repeat=COMMAND_REPEAT_TIMES,
                 async=False):
         if async:
-            self._commands.put((device, method, repeat))
+            self._commands.put((device, method, param, repeat))
         else:
             for i in range(0, repeat):
                 sleep(COMMAND_REPEAT_DELAY.seconds if i else 0)
                 _LOGGER.debug('Sending time %d', i+1)
-                self._execute(device, method)
+                self._execute(device, method, param)
 
     def _async_executor(self):
         pending_commands = {}
 
-        def defer(device, method, repeat):
+        def defer(device, method, param, repeat):
             key = tuple(device.values())
             if repeat:
-                pending_commands[key] = (device, method, repeat)
+                pending_commands[key] = (device, method, param, repeat)
             else:
                 pending_commands.pop(key)
 
@@ -146,7 +152,8 @@ class Controller:
             except Empty:
                 pass
 
-            for (device, method, repeat) in list(pending_commands.values()):
+            for (device, method, param, repeat) in list(
+                    pending_commands.values()):
                 _LOGGER.debug('Sending time %d', repeat)
-                self._execute(device, method)
-                defer(device, method, repeat-1)
+                self._execute(device, method, param)
+                defer(device, method, param, repeat-1)
