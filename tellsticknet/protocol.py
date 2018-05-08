@@ -19,6 +19,27 @@ def _expect(condition):
         raise RuntimeError()
 
 
+def _encode_bytes(s):
+    """
+    encode a string
+
+    >>> _encode_string("hello")
+    '5:hello'
+
+    >>> _encode_string("hellothere")
+    'A:hellothere'
+
+    >>> _encode_string("")
+    '0:'
+
+    >>> _encode_string(4711)
+    Traceback (most recent call last):
+        ...
+    TypeError: object of type 'int' has no len()
+    """
+    return b"%X%s%s" % (len(s), TAG_SEP, s)
+
+
 def _encode_string(s):
     """
     encode a string
@@ -37,7 +58,7 @@ def _encode_string(s):
         ...
     TypeError: object of type 'int' has no len()
     """
-    return b"%X%s%s" % (len(s), TAG_SEP, s.encode())
+    return _encode_bytes(s.encode())
 
 
 def _encode_integer(d):
@@ -99,14 +120,14 @@ def _encode_list(l):
 def _encode_any(t):
     if isinstance(t, int):
         return _encode_integer(t)
+    elif isinstance(t, bytes):
+        return _encode_bytes(t)
     elif isinstance(t, str):
         return _encode_string(t)
     elif isinstance(t, dict):
         return _encode_dict(t)
     elif isinstance(t, list):
         return _encode_list(t)
-    elif isinstance(t, bytes):
-        return t
     else:
         raise NotImplementedError()
 
