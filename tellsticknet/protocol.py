@@ -77,7 +77,7 @@ def _encode_integer(d):
     >>> _encode_integer(3.3)
     'i3s'
     """
-    return b"%c%x%s" % (TAG_INTEGER, int(d), TAG_END)
+    return b"%c%x%c" % (TAG_INTEGER, int(d), TAG_END)
 
 
 def _encode_dict(d):
@@ -293,12 +293,14 @@ def _decode(**packet):
         # convert data={temp=42, humidity=38} to
         # data=[{name=temp, value=42},{name=humidity, valye=38}]
 
-        if (packet and 'data' in packet and isinstance(packet['data'], dict)):
-            packet['data'] = [
-                dict(name=name,
-                     value=value)
-                for name, value
-                in packet['data'].items()]
+        if packet:
+            data = packet.pop('data')
+            if isinstance(data, dict):
+                packet['data'] = [
+                    dict(name=name,
+                         value=value)
+                    for name, value
+                    in data.items()]
 
         return packet
     except ImportError:
