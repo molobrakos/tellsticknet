@@ -9,7 +9,7 @@ Usage:
   tellsticknet [-v|-vv] [options] listen [--raw]
   tellsticknet [-v|-vv] [options] devices
   tellsticknet [-v|-vv] [options] sensors
-  tellsticknet [-v|-vv] [options] send <name> <cmd>
+  tellsticknet [-v|-vv] [options] send <name> <cmd> [<param>]
   tellsticknet [-v|-vv] [options] send <protocol> <model> <house> <unit> <cmd>
   tellsticknet [-v|-vv] [options] mqtt
   tellsticknet [-v|-vv] [options] mock
@@ -177,8 +177,14 @@ if __name__ == "__main__":
             turnoff=const.TURNOFF,
             up=const.UP,
             down=const.DOWN,
-            stop=const.STOP)
+            stop=const.STOP,
+            dim=const.DIM)
         method = METHODS.get(cmd.lower()) or exit('method not found')
+
+        param = args['<param>']
+
+        if method == const.DIM and not param:
+            exit('dim level missing')
 
         name = args['<name>']
         protocol = args['<protocol>']
@@ -194,7 +200,7 @@ if __name__ == "__main__":
         elif protocol and model and house and unit:
             pass  # FIXME
         for device in devices:
-            controller.execute(device, method)
+            controller.execute(device, method, param=param)
     elif args['mqtt']:
         from tellsticknet.mqtt import run
         config = read_config()
