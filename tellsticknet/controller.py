@@ -146,9 +146,9 @@ class Controller:
 
         while True:
             try:
-                defer(*self._commands.get(
-                    timeout=COMMAND_REPEAT_DELAY.seconds if pending_commands
-                    else None))
+                timeout = (COMMAND_REPEAT_DELAY.seconds
+                           if pending_commands else None)
+                defer(*self._commands.get(timeout))
             except Empty:
                 pass
 

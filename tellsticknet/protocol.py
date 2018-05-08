@@ -284,12 +284,11 @@ def _decode(**packet):
         # convert any _class=foo to class=foo
         packet = _fixup(func(packet.copy()))
 
-        # convert data={temp=42, humidity=38} to
-        # data=[{name=temp, value=42},{name=humidity, valye=38}]
-
         if packet:
             data = packet.pop('data')
             if isinstance(data, dict):
+                # convert data={temp=42, humidity=38} to
+                # data=[{name=temp, value=42},{name=humidity, valye=38}]
                 packet['data'] = [
                     dict(name=name,
                          value=value)
