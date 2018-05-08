@@ -5,7 +5,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def decode(packet):
-    data = packet.pop("data")
+    data = packet['data']
 
     data2 = 0
     mask = 1 << 11

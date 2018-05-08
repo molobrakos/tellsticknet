@@ -5,7 +5,7 @@ def decode(packet):
     >>> decode(dict(data=0x48801aff05))["data"]["temp"]
     2.6
     """
-    data = packet.pop("data")
+    data = packet['data']
     data = "%010x" % int(data)
     data = data[:-2]
     humidity = int(data[-2:], 16)

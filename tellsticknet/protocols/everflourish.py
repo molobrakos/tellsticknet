@@ -6,7 +6,7 @@ def decode(packet):
     """
     https://github.com/telldus/telldus/blob/master/telldus-core/service/ProtocolEverflourish.cpp
     """
-    data = packet.pop("data")
+    data = packet['data']
 
     house = data & 0xfffc00
     house >>= 10

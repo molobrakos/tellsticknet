@@ -7,7 +7,7 @@ lastArctecCodeSwitchWasTurnOff = False
 
 
 def decode(packet):
-    data = packet.pop("data")
+    data = packet['data']
 
     method = data & 0xF00
     method >>= 8

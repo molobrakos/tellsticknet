@@ -6,7 +6,7 @@ _LOGGER = logging.getLogger(__name__)
 
 def decode_selflearning(packet):
 
-    data = packet.pop("data")
+    data = packet['data']
 
     house = data & 0xFFFFFFC0
     house >>= 6
@@ -43,7 +43,7 @@ lastArctecCodeSwitchWasTurnOff = False
 
 def decode_codeswitch(packet):
 
-    data = packet.pop("data")
+    data = packet['data']
 
     # print("data %x" % data)
     method = data & 0xF00
