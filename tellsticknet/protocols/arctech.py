@@ -13,9 +13,9 @@ def decode(packet):
     We must copy packet since "data" key will be popped by
     protocol implementations
     """
-    return nexa.decode(packet.copy()) or \
-        waveman.decode(packet.copy()) or \
-        sartano.decode(packet.copy())
+    return nexa.decode(packet) or \
+        waveman.decode(packet) or \
+        sartano.decode(packet)
 
 
 def encode(model, house, unit, method, param, **kwargs):
@@ -23,10 +23,8 @@ def encode(model, house, unit, method, param, **kwargs):
     https://github.com/telldus/tellstick-server/blob/master/rf433/src/rf433/ProtocolArctech.py
     """
 
-    print(model, house, unit, method, param)
-
     if method == const.TURNON and model == 'selflearning-dimmer':
-        return encode(model, house, unit, method=const.DIM, param=255)
+        method, param = const.DIM, 255
     elif method == const.DIM and int(param) == 0:
         method = const.TURNOFF
 
@@ -43,13 +41,13 @@ def encode(model, house, unit, method, param, **kwargs):
             unit=unit,
             method=method)
 
-    SHORT = chr(24)  # py_lint: disable=C0103
-    LONG = chr(127)  # py_lint: disable=C0103
+    SHORT = bytes([24])  # py_lint: disable=C0103
+    LONG = bytes([127])  # py_lint: disable=C0103
 
     ONE = SHORT + LONG + SHORT + SHORT  # py_lint: disable=C0103
     ZERO = SHORT + SHORT + SHORT + LONG  # py_lint: disable=C0103
 
-    code = SHORT + chr(255)
+    code = SHORT + bytes([255])
 
     for i in range(25, -1, -1):
         if house & (1 << i):
@@ -67,6 +65,8 @@ def encode(model, house, unit, method, param, **kwargs):
         code = code + ONE
     elif method == const.LEARN:
         code = code + ONE
+    else:
+        _LOGGER.warning('Unknown method')
 
     for i in range(3, -1, -1):
         if unit & (1 << i):
@@ -75,6 +75,7 @@ def encode(model, house, unit, method, param, **kwargs):
             code = code + ZERO
 
     if method == const.DIM:
+        _LOGGER.debug('Level %d -> %d', int(param), int(param) // 16)
         level = int(param) // 16
         for i in range(3, -1, -1):
             if level & (1 << i):
