@@ -172,15 +172,7 @@ def on_message(client, userdata, message):
         _LOGGER.warning(f'Unknown recipient for {message.topic}')
         return
 
-    payload = message.payload.decode()
-    method = method_for_str(payload)
-
-    if not method:
-        _LOGGER.warning('Unknown method: %s', payload)
-        return
-
-    device.publish_state(payload)  # republish as new state
-    device.command(method)
+    device.receive_mqtt(message.topic, message.payload.decode())
 
 
 class Device:
@@ -208,7 +200,22 @@ class Device:
                                 'house',
                                 'sensorId'])
 
-    def receive(self, packet):
+    def receive_mqtt(self, topic, payload):
+        """Receive a packet from MQTT, e.g. from Home Assistant."""
+        _LOGGER.debug('Received payload %s on topic %s', payload, topic)
+        if topic == self.command_topic:
+            method = method_for_str(payload)
+            if not method:
+                _LOGGER.warning('Unknown method: %s', payload)
+                return
+            self.publish_state(payload)  # republish as new state
+            self.command(method)
+        elif topic == self.brightness_command_topic:
+            self.publish(self.brightness_state_topic, payload, retain=True)
+            self.command(const.DIM, param=payload)
+
+    def receive_local(self, packet):
+        """Receive a packet form the controller / local network / UDP."""
         if not self.is_recipient(packet):
             return False
 
@@ -243,6 +250,10 @@ class Device:
     @property
     def component(self):
         return self.entity.get('component', 'sensor')
+
+    @property
+    def model(self):
+        return self.entity.get('model')
 
     @property
     def name(self):
@@ -285,6 +296,18 @@ class Device:
     @property
     def is_command(self):
         return self.device_kind == 'command'
+
+    @property
+    def is_binary(self):
+        return self.component in ['binary_sensor', 'switch', 'light']
+
+    @property
+    def is_light(self):
+        return self.component == 'light'
+
+    @property
+    def is_dimmer(self):
+        return 'dimmer' in self.model  # e.g. selflearning-dimmer
 
     @property
     def unique_id(self):
@@ -335,6 +358,14 @@ class Device:
         return make_topic(self.topic, 'set')
 
     @property
+    def brightness_command_topic(self):
+        return make_topic(self.topic, 'brightness', 'set')
+
+    @property
+    def brightness_state_topic(self):
+        return make_topic(self.topic, 'brightness', 'state')
+
+    @property
     def discovery_payload(self):
         res = dict(name=self.visible_name,
                    state_topic=self.state_topic,
@@ -352,9 +383,15 @@ class Device:
             res.update(unit_of_measurement=self.unit)
         if self.is_command:
             res.update(optimistic=self.optimistic)
-        if self.component in ['binary_sensor', 'switch', 'light']:
+        if self.is_binary:
             res.update(payload_on=STATE_ON,
                        payload_off=STATE_OFF)
+        if self.is_light:
+            res.update(optimistic=True)
+        if self.is_dimmer:
+            res.update(brightness_command_topic=self.brightness_command_topic,
+                       brightness_state_topic=self.brightness_state_topic,
+                       brightness_scale=255)
         # FIXME: Missing components: cover etc
         return res
 
@@ -369,27 +406,33 @@ class Device:
             _LOGGER.warning('Failure to publish on %s', topic)
 
     @threadsafe
-    def subscribe(self):
-        _LOGGER.debug('Subscribing to %s', self.command_topic)
-        if Device.subscriptions.get(self.command_topic):
-            _LOGGER.debug('Already subscribed to %s', self.command_topic)
+    def subscribe_to(self, topic):
+        _LOGGER.debug('Subscribing to %s', topic)
+        if Device.subscriptions.get(topic):
+            _LOGGER.debug('Already subscribed to %s', topic)
             return
-        res, mid = self.mqtt.subscribe(self.command_topic)
+        res, mid = self.mqtt.subscribe(topic)
         if res == paho.MQTT_ERR_SUCCESS:
-            Device.subscriptions[mid] = self.command_topic
-            Device.subscriptions[self.command_topic] = self
+            Device.subscriptions[mid] = topic
+            Device.subscriptions[topic] = self
         else:
-            _LOGGER.warning('Failure to subscribe to %s', self.command_topic)
+            _LOGGER.warning('Failure to subscribe to %s', self.topic)
 
-    def command(self, command):
-        self.controller.execute(self.entity, command, async=True)
+    @threadsafe
+    def subscribe(self):
+        if self.is_command:
+            self.subscribe_to(self.command_topic)
+        if self.is_dimmer:
+            self.subscribe_to(self.brightness_command_topic)
+
+    def command(self, command, param=None):
+        self.controller.execute(self.entity, command, param=param, async=True)
 
     def publish_discovery(self, items=None):
         self.publish(self.discovery_topic,
                      self.discovery_payload, retain=True)
         self.publish_availability()
-        if self.is_command:
-            self.subscribe()
+        self.subscribe()
 
     def publish_availability(self):
         self.publish(self.availability_topic, STATE_ONLINE,
@@ -477,8 +520,8 @@ def run(config, host):
     #      exit(0)
 
     for packet in controller.events():
-        if not any(d.receive(packet) for d in devices):
+        if not any(d.receive_local(packet) for d in devices):
             _LOGGER.warning('Skipped packet %s', packet)
 
-    # FIXXE: Mark as unavailable if not heard from in time t (24 hours?)
+    # FIXME: Mark as unavailable if not heard from in time t (24 hours?)
     # FIXME: Use config expire in config (like 6 hours?)
