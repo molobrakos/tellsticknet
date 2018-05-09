@@ -41,11 +41,11 @@ def encode(model, house, unit, method, param, **kwargs):
             unit=unit,
             method=method)
 
-    SHORT = bytes([24])  # py_lint: disable=C0103
-    LONG = bytes([127])  # py_lint: disable=C0103
+    SHORT = bytes([24])
+    LONG = bytes([127])
 
-    ONE = SHORT + LONG + SHORT + SHORT  # py_lint: disable=C0103
-    ZERO = SHORT + SHORT + SHORT + LONG  # py_lint: disable=C0103
+    ONE = SHORT + LONG + SHORT + SHORT
+    ZERO = SHORT + SHORT + SHORT + LONG
 
     code = SHORT + bytes([255])
 
@@ -75,7 +75,6 @@ def encode(model, house, unit, method, param, **kwargs):
             code = code + ZERO
 
     if method == const.DIM:
-        _LOGGER.debug('Level %d -> %d', int(param), int(param) // 16)
         level = int(param) // 16
         for i in range(3, -1, -1):
             if level & (1 << i):
