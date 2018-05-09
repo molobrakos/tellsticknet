@@ -8,15 +8,16 @@ docker-run-mqtt:
 	        --name tellsticknet \
 		--restart always \
 		--detach \
-		--net=host \
+		--net host \
 		-v $(HOME)/.config/mosquitto_pub:/app/.config/mosquitto_pub:ro \
-		-v $(HOME)/.tellsticknet.conf:/app/tellsticknet.conf:ro \
+		-v $(HOME)/.config/tellsticknet.conf:/app/tellsticknet.conf:ro \
 		$(IMAGE) ./script/tellsticknet mqtt -vv
 
 docker-run-mqtt-term:
 	docker run \
 		-ti --rm \
-		--net=host \
+	        --name tellsticknet \
+		--net host \
 		-v $(HOME)/.config/mosquitto_pub:/app/.config/mosquitto_pub:ro \
-		-v $(HOME)/.tellsticknet.conf:/app/tellsticknet.conf:ro \
+		-v $(HOME)/.config/tellsticknet.conf:/app/tellsticknet.conf:ro \
 		$(IMAGE) ./script/tellsticknet mqtt -vv
