@@ -159,7 +159,6 @@ def on_publish(client, userdata, mid):
                   *Device.pending.pop(mid))
 
 
-@threadsafe
 def on_disconnect(client, userdata, rc):
     if rc == MQTT_ERR_SUCCESS:
         # we called disconnect ourselves
@@ -433,7 +432,6 @@ class Device:
         else:
             _LOGGER.warning('Failure to subscribe to %s', self.topic)
 
-    @threadsafe
     def subscribe(self):
         if self.is_command:
             self.subscribe_to(self.command_topic)
