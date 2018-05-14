@@ -8,13 +8,18 @@ from os.path import join, expanduser
 from requests import certs
 from threading import current_thread
 import paho.mqtt.client as paho
+from paho.mqtt.client import MQTT_ERR_SUCCESS
 import tellsticknet.const as const
 from tellsticknet.controller import discover
 from threading import RLock
+from platform import node as hostname
+from os import getpid
 
 # FIXME: A command can correspond to multiple entities (e.g. switches/lights)
 
 _LOGGER = logging.getLogger(__name__)
+
+CLEAN_SESSION = True
 
 DISCOVERY_PREFIX = 'homeassistant'
 STATE_PREFIX = 'tellsticknet'
@@ -144,23 +149,30 @@ def make_topic(*levels):
 def on_connect(client, userdata, flags, rc):
     current_thread().setName('MQTTThread')
     _LOGGER.info('Connected')
+    for topic, device in Device.subscriptions.items():
+        device.subscribe_to(topic, resubscribe=True)
 
 
 @threadsafe
 def on_publish(client, userdata, mid):
     _LOGGER.debug('Successfully published on %s: %s',
-                  *Device.subscriptions.pop(mid))
+                  *Device.pending.pop(mid))
 
 
 @threadsafe
 def on_disconnect(client, userdata, rc):
-    _LOGGER.warning('Disconnected')
-
+    if rc == MQTT_ERR_SUCCESS:
+        # we called disconnect ourselves
+        _LOGGER.info('Disconnect successful')
+    else:
+        _LOGGER.warning('Disconnected, automatically reconnecting')
 
 @threadsafe
 def on_subscribe(client, userdata, mid, qos):
+    topic, device = Device.pending.pop(mid)
     _LOGGER.debug(f'Successfully subscribed to %s',
-                  Device.subscriptions.pop(mid))
+                  topic)
+    Device.subscriptions[topic] = device
 
 
 @threadsafe
@@ -168,16 +180,17 @@ def on_message(client, userdata, message):
     _LOGGER.info(f'Got message on {message.topic}: {message.payload}')
     device = Device.subscriptions.get(message.topic)
 
-    if not device:
+    if device:
+        device.receive_mqtt(message.topic, message.payload.decode())
+    else:
         _LOGGER.warning(f'Unknown recipient for {message.topic}')
-        return
-
-    device.receive_mqtt(message.topic, message.payload.decode())
 
 
 class Device:
 
     subscriptions = {}
+    pending = {}
+
     lock = RLock()
 
     def __init__(self, entity, mqtt, controller, sensor=None):
@@ -345,25 +358,28 @@ class Device:
         return make_topic(self.controller_topic,
                           self.unique_id)
 
+    def make_topic(self, *levels):
+        return make_topic(self.topic, *levels)
+
     @property
     def state_topic(self):
-        return make_topic(self.topic, 'state')
+        return self.make_topic('state')
 
     @property
     def availability_topic(self):
-        return make_topic(self.topic, 'avail')
+        return self.make_topic('avail')
 
     @property
     def command_topic(self):
-        return make_topic(self.topic, 'set')
+        return self.make_topic('set')
 
     @property
     def brightness_command_topic(self):
-        return make_topic(self.topic, 'brightness', 'set')
+        return self.make_topic('brightness', 'set')
 
     @property
     def brightness_state_topic(self):
-        return make_topic(self.topic, 'brightness', 'state')
+        return self.make_topic('brightness', 'state')
 
     @property
     def discovery_payload(self):
@@ -400,21 +416,20 @@ class Device:
         payload = dump_json(payload) if isinstance(payload, dict) else payload
         _LOGGER.debug(f'Publishing on {topic} (retain={retain}): {payload}')
         res, mid = self.mqtt.publish(topic, payload, retain=retain)
-        if res == paho.MQTT_ERR_SUCCESS:
-            Device.subscriptions[mid] = (topic, payload)
+        if res == MQTT_ERR_SUCCESS:
+            Device.pending[mid] = (topic, payload)
         else:
             _LOGGER.warning('Failure to publish on %s', topic)
 
     @threadsafe
-    def subscribe_to(self, topic):
+    def subscribe_to(self, topic, resubscribe=False):
         _LOGGER.debug('Subscribing to %s', topic)
-        if Device.subscriptions.get(topic):
+        if not resubscribe and topic in Device.subscriptions:
             _LOGGER.debug('Already subscribed to %s', topic)
             return
         res, mid = self.mqtt.subscribe(topic)
-        if res == paho.MQTT_ERR_SUCCESS:
-            Device.subscriptions[mid] = topic
-            Device.subscriptions[topic] = self
+        if res == MQTT_ERR_SUCCESS:
+            Device.pending[mid] = (topic, self)
         else:
             _LOGGER.warning('Failure to subscribe to %s', self.topic)
 
@@ -471,7 +486,15 @@ class Device:
 
 def run(config, host):
     credentials = read_credentials()
-    mqtt = paho.Client()
+
+    clean_session = CLEAN_SESSION
+
+    client_id = 'tellsticknet_{hostname}_{pid}'.format(
+        hostname=hostname(),
+        pid=getpid()) if not clean_session else None
+
+    mqtt = paho.Client(client_id = client_id,
+                       clean_session = clean_session)
     mqtt.username_pw_set(username=credentials['username'],
                          password=credentials['password'])
     mqtt.tls_set(certs.where())
