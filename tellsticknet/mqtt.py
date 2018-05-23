@@ -166,6 +166,7 @@ def on_disconnect(client, userdata, rc):
     else:
         _LOGGER.warning('Disconnected, automatically reconnecting')
 
+
 @threadsafe
 def on_subscribe(client, userdata, mid, qos):
     topic, device = Device.pending.pop(mid)
@@ -491,8 +492,8 @@ def run(config, host):
         hostname=hostname(),
         pid=getpid()) if not clean_session else None
 
-    mqtt = paho.Client(client_id = client_id,
-                       clean_session = clean_session)
+    mqtt = paho.Client(client_id=client_id,
+                       clean_session=clean_session)
     mqtt.username_pw_set(username=credentials['username'],
                          password=credentials['password'])
     mqtt.tls_set(certs.where())
