@@ -80,6 +80,12 @@ SENSOR_UNITS = {
     const.BAROMETRIC_PRESSURE: 'kPa',
 }
 
+DEVICE_PROPERTIES = ['protocol',
+                     'model',
+                     'unit',
+                     'house',
+                     'sensorId']
+
 
 def threadsafe(function):
     """ Synchronization decorator.
@@ -139,6 +145,9 @@ def make_topic(*levels):
 
     >>> make_topic(('foo', 'bar'))
     'foo/bar'
+
+    >>> make_topic('foo', ('bar', 'baz'))
+    'foo/bar/baz'
     """
     if len(levels) == 1 and isinstance(levels[0], tuple):
         return make_topic(*levels[0])
@@ -197,21 +206,38 @@ class Device:
         self.entity = entity
         self.controller = controller
         self.mqtt = mqtt
-
         self.sensors = None  # dict containing sub-items
         self.sensor = sensor  # str for sensor item
+        # self.aliases = self.entity.pop('aliases', [])
+
+        if not 'class' in self.entity:
+            # optional in config file, since it can be
+            # derrived from presence of the sensorId property
+            self.entity['class'] = ('sensor', 'command')[self.is_command]
 
     def __str__(self):
         return self.visible_name
 
-    def is_recipient(self, packet):
-        return all(self.entity.get(prop) == packet.get(prop)
-                   for prop in ['class',
-                                'protocol',
-                                'model',
-                                'unit',
-                                'house',
-                                'sensorId'])
+    @property
+    def aliases(self):
+        return self.entity.get('aliases', [])
+
+    @property
+    def commands(self):
+        return [self.command] + self.aliases
+
+    @property
+    def command(self):
+        return dict((k, self.entity.get(k)) for k in DEVICE_PROPERTIES)
+
+    def is_recipient(self, packet, entity=None):
+
+        def is_recipient(cmd):
+            return all(cmd.get(prop) == packet.get(prop)
+                       for prop in DEVICE_PROPERTIES)
+
+        return any(is_recipient(command)
+                   for command in self.commands)
 
     def receive_mqtt(self, topic, payload):
         """Receive a packet from MQTT, e.g. from Home Assistant."""
@@ -222,10 +248,10 @@ class Device:
                 _LOGGER.warning('Unknown method: %s', payload)
                 return
             self.publish_state(payload)  # republish as new state
-            self.command(method)
+            self.execute(method)
         elif topic == self.brightness_command_topic:
             self.publish(self.brightness_state_topic, payload, retain=True)
-            self.command(const.DIM, param=payload)
+            self.execute(const.DIM, param=payload)
 
     def receive_local(self, packet):
         """Receive a packet form the controller / local network / UDP."""
@@ -265,10 +291,6 @@ class Device:
         return self.entity.get('component', 'sensor')
 
     @property
-    def model(self):
-        return self.entity.get('model')
-
-    @property
     def name(self):
         if self.is_sensor:
             return '{name} {quantity}'.format(
@@ -298,17 +320,12 @@ class Device:
         return self.name or self.unique_id
 
     @property
-    def device_kind(self):
-        """Return command or sensor."""
-        return self.entity['class']
-
-    @property
     def is_sensor(self):
-        return self.device_kind == 'sensor' and self.sensor
+        return 'sensorId' in self.entity
 
     @property
     def is_command(self):
-        return self.device_kind == 'command'
+        return not self.is_sensor
 
     @property
     def is_binary(self):
@@ -320,10 +337,16 @@ class Device:
 
     @property
     def is_dimmer(self):
-        return 'dimmer' in self.model  # e.g. selflearning-dimmer
+        return (self.entity.get('dimmer', False) or
+                'dimmer' in self.entity.get('model', ''))
 
     @property
     def unique_id(self):
+        name = self.name.lower().replace(' ', '_')  # FIXME
+        if self.is_command:
+            return ('command', self.component, name)
+        elif self.is_sensor:
+            return ('sensor', name)
         if self.is_command:
             return '{class}/{protocol}/{model}/{house}/{unit}'.format(
                 **self.entity)
@@ -339,7 +362,7 @@ class Device:
 
     @property
     def discovery_object_id(self):
-        return make_hass_single_topic_level(self.unique_id)
+        return make_hass_single_topic_level(make_topic(self.unique_id))
 
     @property
     def discovery_node_id(self):
@@ -356,7 +379,7 @@ class Device:
     @property
     def topic(self):
         return make_topic(self.controller_topic,
-                          self.unique_id)
+                          *self.unique_id)
 
     def make_topic(self, *levels):
         return make_topic(self.topic, *levels)
@@ -439,8 +462,8 @@ class Device:
         if self.is_dimmer:
             self.subscribe_to(self.brightness_command_topic)
 
-    def command(self, command, param=None):
-        self.controller.execute(self.entity, command, param=param, async=True)
+    def execute(self, command, param=None):
+        self.controller.execute(self.command, command, param=param, async=True)
 
     def publish_discovery(self, items=None):
         self.publish(self.discovery_topic,
