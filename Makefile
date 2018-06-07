@@ -6,6 +6,8 @@ lint:
 test:
 	tox
 
+check: lint test
+
 docker-build:
 	docker build -t $(IMAGE) .
 
