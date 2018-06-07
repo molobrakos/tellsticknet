@@ -1,4 +1,0 @@
-#!/bin/sh
-# run all tests
-
-tox
