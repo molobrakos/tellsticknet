@@ -145,9 +145,6 @@ def make_topic(*levels):
 
     >>> make_topic(('foo', 'bar'))
     'foo/bar'
-
-    >>> make_topic('foo', ('bar', 'baz'))
-    'foo/bar/baz'
     """
     if len(levels) == 1 and isinstance(levels[0], tuple):
         return make_topic(*levels[0])
@@ -210,7 +207,7 @@ class Device:
         self.sensor = sensor  # str for sensor item
         # self.aliases = self.entity.pop('aliases', [])
 
-        if not 'class' in self.entity:
+        if 'class' not in self.entity:
             # optional in config file, since it can be
             # derrived from presence of the sensorId property
             self.entity['class'] = ('sensor', 'command')[self.is_command]
