@@ -23,9 +23,6 @@ def decode(packet):
 
     if house > 16383 or unit < 1 or unit > 4:
         # not everflourish
-        _LOGGER.debug("Not Everflourish (data=%x, house=%d, "
-                      "unit=%d, method=%d)",
-                      data, house, unit, method)
         return
 
     if method == 0:
@@ -35,9 +32,7 @@ def decode(packet):
     elif method == 10:
         method = "learn"
     else:
-        _LOGGER.debug("Not Everflourish (data=%x, house=%d, "
-                      "unit=%d, method=%d)",
-                      data, house, unit, method)
+        # not everflourish
         return
 
     return dict(packet,
