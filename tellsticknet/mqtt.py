@@ -566,7 +566,8 @@ def run(config, host):
     #      exit(0)
 
     for packet in controller.events():
-        # print('%15s %15s %2s %2s' % (packet['protocol'], packet['house'], packet['unit'], packet.get('group', '-')))
+        # print('%15s %15s %2s %2s' % (packet['protocol'],
+        #       packet['house'], packet['unit'], packet.get('group', '-')))
         received = [d.receive_local(packet) for d in devices]
         if not any(received):
             _LOGGER.warning('Skipped packet %s', packet)
