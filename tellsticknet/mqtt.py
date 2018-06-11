@@ -230,8 +230,12 @@ class Device:
     def is_recipient(self, packet, entity=None):
 
         def is_recipient(cmd):
+            properties = DEVICE_PROPERTIES
+            if packet.get('group'):
+                properties = (prop for prop in properties if prop != 'unit')
+
             return all(cmd.get(prop) == packet.get(prop)
-                       for prop in DEVICE_PROPERTIES)
+                       for prop in properties)
 
         return any(is_recipient(command)
                    for command in self.commands)
@@ -562,7 +566,9 @@ def run(config, host):
     #      exit(0)
 
     for packet in controller.events():
-        if not any(d.receive_local(packet) for d in devices):
+        # print('%15s %15s %2s %2s' % (packet['protocol'], packet['house'], packet['unit'], packet.get('group', '-')))
+        received = [d.receive_local(packet) for d in devices]
+        if not any(received):
             _LOGGER.warning('Skipped packet %s', packet)
 
     # FIXME: Mark as unavailable if not heard from in time t (24 hours?)
