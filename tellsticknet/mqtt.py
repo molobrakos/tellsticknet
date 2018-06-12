@@ -14,6 +14,7 @@ from tellsticknet.controller import discover
 from threading import RLock
 from platform import node as hostname
 from os import getpid
+import string
 
 # FIXME: A command can correspond to multiple entities (e.g. switches/lights)
 
@@ -128,13 +129,23 @@ def read_credentials():
                     password=d['pw'])
 
 
-def make_hass_single_topic_level(s):
+def whitelisted(s,
+                whitelist='_-' + string.ascii_letters + string.digits,
+                substitute='_'):
+    """
+    >>> whitelisted("ab/cd#ef(gh")
+    abcdefgh
+    """
+    return ''.join(c if c in whitelist else substitute for c in s)
+
+
+def make_valid_hass_single_topic_level(s):
     """Transform a multi level topic to a single level.
 
     >>> make_hass_single_topic_level('foo/bar/baz')
     'foo_bar_baz'
     """
-    return s.replace('/', '_')
+    return whitelisted(s.replace('/', '_'), substitute='')
 
 
 def make_topic(*levels):
@@ -343,18 +354,12 @@ class Device:
 
     @property
     def unique_id(self):
-        name = self.name.lower().replace(' ', '_')  # FIXME
+        name = self.name.lower()
         if self.is_command:
             return ('command', self.component, name)
         elif self.is_sensor:
             return ('sensor', name)
-        if self.is_command:
-            return '{class}/{protocol}/{model}/{house}/{unit}'.format(
-                **self.entity)
-        elif self.is_sensor:
-            return '{class}/{protocol}/{model}/{sensorId}/{sensor}'.format(
-                sensor=self.sensor, **self.entity)
-        _LOGGER.error('No template')
+        _LOGGER.error('Should not happen')
 
     @property
     def controller_topic(self):
@@ -363,11 +368,13 @@ class Device:
 
     @property
     def discovery_object_id(self):
-        return make_hass_single_topic_level(make_topic(self.unique_id))
+        """object_id should be [a-zA-Z0-9_-+]"""
+        return make_valid_hass_single_topic_level(make_topic(self.unique_id))
 
     @property
     def discovery_node_id(self):
-        return make_hass_single_topic_level(self.controller_topic)
+        """node_id should be [a-zA-Z0-9_-+]"""
+        return make_valid_hass_single_topic_level(self.controller_topic)
 
     @property
     def discovery_topic(self):
