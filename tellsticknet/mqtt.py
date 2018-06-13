@@ -178,6 +178,7 @@ def on_connect(client, userdata, flags, rc):
 
 @threadsafe
 def on_publish(client, userdata, mid):
+    current_thread().setName('MQTTThread')
     _LOGGER.debug('Successfully published on %s: %s',
                   *Device.pending.pop(mid))
 
