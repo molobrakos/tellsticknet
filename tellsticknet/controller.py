@@ -148,8 +148,10 @@ class Controller:
             try:
                 timeout = (COMMAND_REPEAT_DELAY.seconds
                            if pending_commands else None)
-                defer(*self._commands.get(timeout))
+                _LOGGER.debug('Waiting for command for %s', timeout)
+                defer(*self._commands.get(block=True, timeout=timeout))
             except Empty:
+                _LOGGER.debug('Queue was empty')
                 pass
 
             for (device, method, param, repeat) in list(
