@@ -1,5 +1,7 @@
 IMAGE=molobrakos/tellsticknet
 
+default: check
+
 lint:
 	tox -e lint
 

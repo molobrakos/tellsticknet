@@ -134,16 +134,22 @@ def whitelisted(s,
                 substitute='_'):
     """
     >>> whitelisted("ab/cd#ef(gh")
-    abcdefgh
-    """
+    'ab_cd_ef_gh'
+
+    >>> whitelisted("ab/cd#ef(gh", substitute='')
+    'abcdefgh'
+   """
     return ''.join(c if c in whitelist else substitute for c in s)
 
 
 def make_valid_hass_single_topic_level(s):
     """Transform a multi level topic to a single level.
 
-    >>> make_hass_single_topic_level('foo/bar/baz')
+    >>> make_valid_hass_single_topic_level('foo/bar/baz')
     'foo_bar_baz'
+
+    >>> make_valid_hass_single_topic_level('hello å ä ö')
+    'hello'
     """
     return whitelisted(s.replace('/', '_'), substitute='')
 
