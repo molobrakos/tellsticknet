@@ -211,7 +211,8 @@ def on_subscribe(client, userdata, mid, qos):
 
 @threadsafe
 def on_message(client, userdata, message):
-    _LOGGER.warning(f'Got unhandled message on {message.topic}: {message.payload}')
+    _LOGGER.warning('Got unhandled message on '
+                    f'{message.topic}: {message.payload}')
 
 
 class Device:
