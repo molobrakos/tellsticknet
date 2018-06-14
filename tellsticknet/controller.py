@@ -148,7 +148,9 @@ class Controller:
             try:
                 timeout = (COMMAND_REPEAT_DELAY.seconds
                            if pending_commands else None)
-                _LOGGER.debug('Waiting for command for %s', timeout)
+                _LOGGER.debug('Waiting for command %s',
+                              ('for %d seconds' % timeout)
+                              if timeout else 'forever')
                 defer(*self._commands.get(block=True, timeout=timeout))
             except Empty:
                 _LOGGER.debug('Queue was empty')

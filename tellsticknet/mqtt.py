@@ -11,7 +11,7 @@ import paho.mqtt.client as paho
 from paho.mqtt.client import MQTT_ERR_SUCCESS
 import tellsticknet.const as const
 from tellsticknet.controller import discover
-from threading import RLock
+from threading import RLock, Event
 from platform import node as hostname
 from os import getpid
 import string
@@ -20,7 +20,6 @@ import string
 
 _LOGGER = logging.getLogger(__name__)
 
-CLEAN_SESSION = True
 
 DISCOVERY_PREFIX = 'homeassistant'
 STATE_PREFIX = 'tellsticknet'
@@ -171,14 +170,26 @@ def make_topic(*levels):
 @threadsafe
 def on_connect(client, userdata, flags, rc):
     current_thread().setName('MQTTThread')
+    if rc != MQTT_ERR_SUCCESS:
+        _LOGGER.error('Failure to connect: %d', rc)
+        return
+
     _LOGGER.info('Connected')
-    for topic, device in Device.subscriptions.items():
-        device.subscribe_to(topic, resubscribe=True)
+    if flags.get('session present', False):
+        _LOGGER.debug('Session present')
+    else:
+        _LOGGER.debug('Session not present, resubscribe to topics')
+        for device in Device.devices:
+            if device.is_command:
+                # Commands are visible directly, sensors when data available
+                device.publish_discovery()
+
+    # Go on
+    Device.connected.set()
 
 
 @threadsafe
 def on_publish(client, userdata, mid):
-    current_thread().setName('MQTTThread')
     _LOGGER.debug('Successfully published on %s: %s',
                   *Device.pending.pop(mid))
 
@@ -194,28 +205,22 @@ def on_disconnect(client, userdata, rc):
 @threadsafe
 def on_subscribe(client, userdata, mid, qos):
     topic, device = Device.pending.pop(mid)
-    _LOGGER.debug(f'Successfully subscribed to %s',
-                  topic)
-    Device.subscriptions[topic] = device
+    _LOGGER.debug(f'Successfully subscribed to %s', topic)
+    client.message_callback_add(topic, device.on_mqtt_message)
 
 
 @threadsafe
 def on_message(client, userdata, message):
-    _LOGGER.info(f'Got message on {message.topic}: {message.payload}')
-    device = Device.subscriptions.get(message.topic)
-
-    if device:
-        device.receive_mqtt(message.topic, message.payload.decode())
-    else:
-        _LOGGER.warning(f'Unknown recipient for {message.topic}')
+    _LOGGER.warning(f'Got unhandled message on {message.topic}: {message.payload}')
 
 
 class Device:
 
-    subscriptions = {}
+    devices = []
     pending = {}
 
     lock = RLock()
+    connected = Event()
 
     def __init__(self, entity, mqtt, controller, sensor=None):
         self.entity = entity
@@ -258,8 +263,10 @@ class Device:
         return any(is_recipient(command)
                    for command in self.commands)
 
-    def receive_mqtt(self, topic, payload):
+    def on_mqtt_message(self, client, userdata, message):
         """Receive a packet from MQTT, e.g. from Home Assistant."""
+        topic = message.topic
+        payload = message.payload.decode()
         _LOGGER.debug('Received payload %s on topic %s', payload, topic)
         if topic == self.command_topic:
             method = method_for_str(payload)
@@ -460,11 +467,8 @@ class Device:
             _LOGGER.warning('Failure to publish on %s', topic)
 
     @threadsafe
-    def subscribe_to(self, topic, resubscribe=False):
+    def subscribe_to(self, topic):
         _LOGGER.debug('Subscribing to %s', topic)
-        if not resubscribe and topic in Device.subscriptions:
-            _LOGGER.debug('Already subscribed to %s', topic)
-            return
         res, mid = self.mqtt.subscribe(topic)
         if res == MQTT_ERR_SUCCESS:
             Device.pending[mid] = (topic, self)
@@ -522,19 +526,34 @@ class Device:
 
 
 def run(config, host):
+
+    _LOGGER.debug('Reading credentials')
     credentials = read_credentials()
 
-    clean_session = CLEAN_SESSION
+    _LOGGER.debug('Discovering Tellstick')
+    # FIXME: Allow multiple controllers on same network (just loop in init)
+    controllers = discover(host)
+    controller = next(controllers, None) or exit('no tellstick devices found')
 
     client_id = 'tellsticknet_{hostname}_{pid}'.format(
         hostname=hostname(),
-        pid=getpid()) if not clean_session else None
+        pid=getpid())
 
     mqtt = paho.Client(client_id=client_id,
-                       clean_session=clean_session)
+                       clean_session=False)
     mqtt.username_pw_set(username=credentials['username'],
                          password=credentials['password'])
     mqtt.tls_set(certs.where())
+
+    _LOGGER.debug('Setting up devices')
+    # FIXME: Make it possible to have more components with same component
+    # type but different device_class_etc
+    Device.devices = [Device(e, mqtt, controller)
+                      for e in config
+                      if e.get('controller',
+                               controller._mac).lower() in (
+                                   controller._ip,
+                                   controller._mac)]
 
     mqtt.on_connect = on_connect
     mqtt.on_disconnect = on_disconnect
@@ -542,26 +561,10 @@ def run(config, host):
     mqtt.on_message = on_message
     mqtt.on_subscribe = on_subscribe
 
+    _LOGGER.debug('Connecting')
     mqtt.connect(host=credentials['host'],
                  port=int(credentials['port']))
     mqtt.loop_start()
-
-    # FIXME: Allow multiple controllers on same network (just loop in init)
-    controllers = discover(host)
-    controller = next(controllers, None) or exit('no tellstick devices found')
-
-    # FIXME: Make it possible to have more components with same component
-    # type but different device_class_etc
-    devices = [Device(e, mqtt, controller)
-               for e in config
-               if e.get('controller',
-                        controller._mac).lower() in (
-                            controller._ip,
-                            controller._mac)]
-    for device in devices:
-        if device.is_command:
-            # Commands are visible directly, sensors when data available
-            device.publish_discovery()
 
     #  For debugging, allow pipe a previous packet capture to stdin
     #  FIXME: flag instead
@@ -579,10 +582,14 @@ def run(config, host):
     #          print(packet)
     #      exit(0)
 
+    _LOGGER.debug('Waiting for connection')
+    Device.connected.wait()
+    _LOGGER.debug('Connected, start listening for Tellstick packets')
+
     for packet in controller.events():
         # print('%15s %15s %2s %2s' % (packet['protocol'],
         #       packet['house'], packet['unit'], packet.get('group', '-')))
-        received = [d.receive_local(packet) for d in devices]
+        received = [d.receive_local(packet) for d in Device.devices]
         if not any(received):
             _LOGGER.warning('Skipped packet %s', packet)
 
