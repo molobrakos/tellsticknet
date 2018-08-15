@@ -5,7 +5,7 @@ import logging
 from json import dumps as dump_json
 from os import environ as env
 from os.path import join, expanduser
-import time
+from time import time
 from requests import certs
 from threading import current_thread
 import paho.mqtt.client as paho
@@ -539,7 +539,7 @@ def run(config, host):
 
     client_id = 'tellsticknet_{hostname}_{time}'.format(
         hostname=hostname(),
-        time=time.time())
+        time=time())
 
     _LOGGER.debug('Client id is %s', client_id)
 
