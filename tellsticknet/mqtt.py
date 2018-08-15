@@ -540,6 +540,8 @@ def run(config, host):
         hostname=hostname(),
         pid=getpid())
 
+    _LOGGER.debug('Client id is %s', client_id)
+
     mqtt = paho.Client(client_id=client_id,
                        clean_session=False)
     mqtt.username_pw_set(username=credentials['username'],
