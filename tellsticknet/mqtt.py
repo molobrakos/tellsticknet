@@ -150,7 +150,7 @@ def make_valid_hass_single_topic_level(s):
     >>> make_valid_hass_single_topic_level('hello å ä ö')
     'hello'
     """
-    return whitelisted(s.replace('/', '_'), substitute='')
+    return whitelisted(s)
 
 
 def make_topic(*levels):
@@ -200,7 +200,7 @@ def on_disconnect(client, userdata, rc):
         _LOGGER.info('Disconnect successful')
     else:
         _LOGGER.warning('Disconnected, automatically reconnecting')
-
+        Device.connected.clear()
 
 @threadsafe
 def on_subscribe(client, userdata, mid, qos):
@@ -549,12 +549,16 @@ def run(config, host):
     _LOGGER.debug('Setting up devices')
     # FIXME: Make it possible to have more components with same component
     # type but different device_class_etc
+
+    _LOGGER.debug('Found %d devices in config', len(config))
     Device.devices = [Device(e, mqtt, controller)
                       for e in config
                       if e.get('controller',
                                controller._mac).lower() in (
                                    controller._ip,
                                    controller._mac)]
+
+    _LOGGER.debug('Configured %d devices', len(Device.devices))
 
     mqtt.on_connect = on_connect
     mqtt.on_disconnect = on_disconnect
@@ -583,11 +587,13 @@ def run(config, host):
     #          print(packet)
     #      exit(0)
 
-    _LOGGER.debug('Waiting for connection')
-    Device.connected.wait()
-    _LOGGER.debug('Connected, start listening for Tellstick packets')
-
     for packet in controller.events():
+
+        if not Device.connected.is_set():
+            _LOGGER.debug('Waiting for connection')
+            Device.connected.wait()
+            _LOGGER.debug('Connected, start listening for Tellstick packets')
+
         # print('%15s %15s %2s %2s' % (packet['protocol'],
         #       packet['house'], packet['unit'], packet.get('group', '-')))
         received = [d.receive_local(packet) for d in Device.devices]
