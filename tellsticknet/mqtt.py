@@ -14,7 +14,6 @@ import tellsticknet.const as const
 from tellsticknet.controller import discover
 from threading import RLock, Event
 from platform import node as hostname
-from os import getpid
 import string
 
 # FIXME: A command can correspond to multiple entities (e.g. switches/lights)
@@ -149,7 +148,7 @@ def make_valid_hass_single_topic_level(s):
     'foo_bar_baz'
 
     >>> make_valid_hass_single_topic_level('hello å ä ö')
-    'hello'
+    'hello______'
     """
     return whitelisted(s)
 
@@ -202,6 +201,7 @@ def on_disconnect(client, userdata, rc):
     else:
         _LOGGER.warning('Disconnected, automatically reconnecting')
         Device.connected.clear()
+
 
 @threadsafe
 def on_subscribe(client, userdata, mid, qos):
