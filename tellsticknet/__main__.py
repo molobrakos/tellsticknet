@@ -198,7 +198,7 @@ if __name__ == "__main__":
             if not devices:
                 exit(f'Device with name {name} not found')
         elif protocol and model and house and unit:
-            pass  # FIXME
+            exit('Not implemented')
         for device in devices:
             controller.execute(device, method, param=param)
     elif args['mqtt']:
