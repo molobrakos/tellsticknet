@@ -159,10 +159,10 @@ if __name__ == "__main__":
     elif args['listen']:
         print_event_stream(raw=args['--raw'])
     elif args['devices']:
-        for e in (e for e in read_config() if e['class'] == 'command'):
+        for e in (e for e in read_config() if 'sensorId' not in e):
             print('-', e['name'])
     elif args['sensors']:
-        for e in (e for e in read_config() if e['class'] == 'sensor'):
+        for e in (e for e in read_config() if 'sensorId' in e):
             print('-', e['name'])
     elif args['send']:
         controller = (next(discover(), None)
