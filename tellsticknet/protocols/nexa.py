@@ -45,34 +45,25 @@ def decode_codeswitch(packet):
 
     data = packet['data']
 
-    # print("data %x" % data)
     method = data & 0xF00
-    # print("%x" % method)
     method >>= 8
-    # print("%x" % method)
 
     unit = data & 0xF0
     unit >>= 4
     unit += 1
 
     house = data & 0xF
-    # print(house, unit)
     if house > 16 or unit < 1 or unit > 16:
         # not arctech codeswitch
         _LOGGER.debug("Not Arctech")
         return
 
     house = chr(house + ord('A'))  # house from A to P
-    # print(house)
+
     global lastArctecCodeSwitchWasTurnOff
-    # print(method)
 
     if method != 6 and lastArctecCodeSwitchWasTurnOff:
         lastArctecCodeSwitchWasTurnOff = False
-        # probably a stray turnon or bell
-        # (perhaps: only certain time interval since last,
-        # check that it's the same house/unit
-        # Will lose one turnon/bell, but it's better than the alternative...
         return
 
     if method == 6:
@@ -93,7 +84,6 @@ def decode_codeswitch(packet):
     elif method == 15:
         ret.update(method="bell")
     else:
-        _LOGGER.debug("Not Arctech")
         # not arctech codeswitch
         return
 
