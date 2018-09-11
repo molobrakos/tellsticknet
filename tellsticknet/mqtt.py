@@ -293,6 +293,11 @@ class Device:
             state = STATES[method]
             self.publish_availability()
             self.publish_state(state)
+
+            if method == const.TURNON and self.auto_off:
+                _LOGGER.debug('Turning off automatically')
+                self.publish_state(STATE_OFF)
+
         elif self.is_sensor:
             state = next(item['value']
                          for item in packet['data']
@@ -342,6 +347,10 @@ class Device:
     @property
     def invert(self):
         return self.entity.get('invert', False)
+
+    @property
+    def auto_off(self):
+        return self.entity.get('auto_off', False)
 
     @property
     def visible_name(self):
