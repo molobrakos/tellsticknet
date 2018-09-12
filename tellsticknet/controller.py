@@ -37,17 +37,10 @@ class Controller:
         self._ip = ip
         self._mac = mac.lower()
         self._last_registration = None
-        self._stop = False
-        self._commands = Queue()
-        Thread(target=self._async_executor,
-               name='SenderThread',
-               daemon=True).start()
+        self._commands = None
 
     def __repr__(self):
         return f'Controller@{self._ip} ({self._mac})'
-
-    def stop(self):
-        self._stop = True
 
     def _send(self, sock, command, **args):
         """Send a command to the controller
@@ -77,34 +70,45 @@ class Controller:
             # just retry
             pass
 
-    def packets(self):
+    def packets(self, timeout=None):
         """Listen forever for network events, yield stream of packets"""
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             sock.setblocking(1)
-            sock.settimeout(TIMEOUT.seconds)
-            _LOGGER.debug("Listening for signals from %s", self._ip)
-            while not self._stop:
+            sock.settimeout(timeout)
+            while True:
                 self._register_if_needed(sock)
                 try:
+                    _LOGGER.debug("Listening for signals from %s", self._ip)
                     response, (ip, port) = sock.recvfrom(1024)
+                    _LOGGER.debug("Got packet from %s:%d", ip, port)
                     if ip != self._ip:
                         continue
                     yield response.decode("ascii")
-                except (socket.timeout, OSError):
+                except socket.timeout:
+                    return None
+                except OSError:
                     pass
 
-    def events(self):
-        for packet in self.packets():
+    def events(self, timeout=None):
+        for packet in self.packets(timeout):
 
             packet = decode_packet(packet)
             if not packet:
-                continue  # timeout
+                return None  # timeout
 
             packet.update(lastUpdated=int(time()))
             _LOGGER.debug("Got packet %s", packet)
 
             yield packet
+
+    def _start_sender_thread(self):
+        if self._commands:
+            return
+        self._commands = Queue()
+        Thread(target=self._async_executor,
+               name='SenderThread',
+               daemon=True).start()
 
     def _execute(self, device, method, param=None):
         """arctech on/off implemented in firmware here:
@@ -126,6 +130,7 @@ class Controller:
                 param=None,
                 repeat=COMMAND_REPEAT_TIMES,
                 async=False):
+        self._start_sender_thread()
         if async:
             self._commands.put((device, method, param, repeat))
         else:
