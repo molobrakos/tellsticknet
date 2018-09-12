@@ -8,7 +8,7 @@ from . import discovery
 from .protocol import encode_packet, decode_packet, encode
 
 COMMAND_PORT = 42314
-TIMEOUT = timedelta(seconds=5)
+TIMEOUT = timedelta(seconds=30)
 
 # re-register ourselves at the device at regular intervals.
 # shouldn't really be neccessary byt sometimes the connections seems
@@ -75,7 +75,7 @@ class Controller:
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             sock.setblocking(1)
-            sock.settimeout(timeout)
+            sock.settimeout(timeout or TIMEOUT)
             while True:
                 self._register_if_needed(sock)
                 try:
@@ -86,7 +86,8 @@ class Controller:
                         continue
                     yield response.decode("ascii")
                 except socket.timeout:
-                    return None
+                    if timeout:
+                        return None  # else re-register
                 except OSError:
                     pass
 
