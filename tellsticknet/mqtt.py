@@ -599,7 +599,11 @@ def run(config, host):
     #          print(packet)
     #      exit(0)
 
-    for packet in controller.events():
+    from datetime import timedelta
+    for packet in controller.events(timedelta(seconds=5)):
+
+        if not packet:  # timeout
+            continue
 
         if not Device.connected.is_set():
             _LOGGER.debug('Waiting for connection')

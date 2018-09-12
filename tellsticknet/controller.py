@@ -75,28 +75,32 @@ class Controller:
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             sock.setblocking(1)
-            sock.settimeout(timeout or TIMEOUT)
+            sock.settimeout((timeout or TIMEOUT).seconds)
             while True:
                 self._register_if_needed(sock)
                 try:
                     _LOGGER.debug("Listening for signals from %s", self._ip)
                     response, (ip, port) = sock.recvfrom(1024)
                     _LOGGER.debug("Got packet from %s:%d", ip, port)
-                    if ip != self._ip:
-                        continue
-                    yield response.decode("ascii")
+                    if ip == self._ip:
+                        yield response.decode("ascii")
                 except socket.timeout:
                     if timeout:
-                        return None  # else re-register
+                        yield None
                 except OSError:
                     pass
 
     def events(self, timeout=None):
         for packet in self.packets(timeout):
 
-            packet = decode_packet(packet)
             if not packet:
-                return None  # timeout
+                yield None  # timeout
+                continue
+
+            packet = decode_packet(packet)
+
+            if not packet:
+                continue  # failed to decode
 
             packet.update(lastUpdated=int(time()))
             _LOGGER.debug("Got packet %s", packet)
