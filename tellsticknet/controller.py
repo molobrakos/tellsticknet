@@ -131,8 +131,8 @@ class Controller:
                 param=None,
                 repeat=COMMAND_REPEAT_TIMES,
                 async=False):
-        self._start_sender_thread()
         if async:
+            self._start_sender_thread()
             self._commands.put((device, method, param, repeat))
         else:
             for i in range(0, repeat):
