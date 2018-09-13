@@ -230,7 +230,6 @@ class Device:
         self.mqtt = mqtt
         self.sensors = None  # dict containing sub-items
         self.sensor = sensor  # str for sensor item
-        # self.aliases = self.entity.pop('aliases', [])
 
         if 'class' not in self.entity:
             # optional in config file, since it can be
