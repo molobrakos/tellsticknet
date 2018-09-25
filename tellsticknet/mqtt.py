@@ -466,22 +466,22 @@ class Device:
         # FIXME: Missing components: cover etc
         return res
 
-    @threadsafe
     def publish(self, topic, payload, retain=False):
         payload = dump_json(payload) if isinstance(payload, dict) else payload
         _LOGGER.debug(f'Publishing on {topic} (retain={retain}): {payload}')
         res, mid = self.mqtt.publish(topic, payload, retain=retain)
         if res == MQTT_ERR_SUCCESS:
-            Device.pending[mid] = (topic, payload)
+            with Device.lock:
+                Device.pending[mid] = (topic, payload)
         else:
             _LOGGER.warning('Failure to publish on %s', topic)
 
-    @threadsafe
     def subscribe_to(self, topic):
         _LOGGER.debug('Subscribing to %s', topic)
         res, mid = self.mqtt.subscribe(topic)
         if res == MQTT_ERR_SUCCESS:
-            Device.pending[mid] = (topic, self)
+            with Device.lock:
+                Device.pending[mid] = (topic, self)
         else:
             _LOGGER.warning('Failure to subscribe to %s', self.topic)
 
