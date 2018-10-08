@@ -493,7 +493,8 @@ class Device:
             self.subscribe_to(self.brightness_command_topic)
 
     def execute(self, command, param=None):
-        self.controller.execute(self.command, command, param=param, async=True)
+        self.controller.execute(self.command, command, param=param,
+                                asynchronous=True)
 
     def publish_discovery(self, items=None):
         self.publish(self.discovery_topic,

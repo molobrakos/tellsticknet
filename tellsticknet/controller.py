@@ -134,8 +134,8 @@ class Controller:
     def execute(self, device, method,
                 param=None,
                 repeat=COMMAND_REPEAT_TIMES,
-                async=False):
-        if async:
+                asynchronous=False):
+        if asynchronous:
             self._start_sender_thread()
             self._commands.put((device, method, param, repeat))
         else:
