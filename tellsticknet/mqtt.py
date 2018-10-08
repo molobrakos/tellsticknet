@@ -294,7 +294,8 @@ class Device:
             self.publish_state(state)
 
             if method == const.TURNON and self.auto_off:
-                _LOGGER.debug('Turning off automatically') # FIXME: wait 10 seconds?
+                #  FIXME: wait 10 seconds?
+                _LOGGER.debug('Turning off automatically')
                 self.publish_state(STATE_OFF)
 
         elif self.is_sensor:
