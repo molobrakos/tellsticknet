@@ -345,13 +345,10 @@ A:fineoffset4:datai488029FF9Ass"
     >>> decode_packet(packet)["data"][0]["value"]
     4.1
 
-    # Not everflourish
     packet = "7:RawDatah8:protocolC:everflourish4:dataiA1CC92ss"
     >>> decode_packet(packet)["data"][0]["value"]
     4.1
 
-
-    # List not yet implemented
     >>> packet = "7:RawDatah8:protocolA:fineoffset2:idi98s6:valueslh\
 5:scalei0s4:typei1s5:value4:16.6ss5:modelB:temperature\
 4:datai4980A6FFBBs5:class6:sensors"
