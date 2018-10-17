@@ -97,10 +97,12 @@ class Controller:
                 yield None  # timeout
                 continue
 
-            packet = decode_packet(packet)
-
-            if not packet:
-                continue  # failed to decode
+            try:
+                packet = decode_packet(packet)
+            except NotImplementedError:
+                _LOGGER.warning("failed to decode packet, skipping: %s",
+                                packet)
+                continue
 
             packet.update(lastUpdated=int(time()))
             _LOGGER.debug("Got packet %s", packet)
