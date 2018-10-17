@@ -16,6 +16,65 @@ MIN_TELLSTICKNET_FIRMWARE_VERSION = 17
 _LOGGER = logging.getLogger(__name__)
 
 
+def parse_discovery_packet(data):
+    """
+    parse a discovery packet
+
+    >>> parse_discovery_packet(b'TellStickNet:mac:code:17')
+    ('mac', 'TellStickNet', '17')
+
+    >>> parse_discovery_packet(b'TellstickNetV2:mac:code:1.1.0:uid')
+    ('mac', 'TellstickNetV2', '1.1.0')
+
+    >>> parse_discovery_packet(b'')
+    Traceback (most recent call last):
+    ...
+    ValueError
+
+    # Unsupported version
+    >>> parse_discovery_packet(b'TellstickNet:mac:code:1:uid')
+    Traceback (most recent call last):
+    ...
+    ValueError
+
+    # Unsupported product
+    >>> parse_discovery_packet(b'TellstickNetV99:mac:code:1.1.0:uid')
+    Traceback (most recent call last):
+    ...
+    ValueError
+
+    # Too many items
+    >>> parse_discovery_packet(b'TellStickNet:mac:code:a:b:c:d')
+    Traceback (most recent call last):
+    ...
+    ValueError
+
+    # Too few items
+    >>> parse_discovery_packet(b'TellStickNet:mac:code')
+    Traceback (most recent call last):
+    ...
+    ValueError
+
+    """
+    entry = data.decode("ascii").split(":")
+    if not len(entry) in (4, 5):
+        _LOGGER.info("Malformed reply: %s", data)
+        raise ValueError
+
+    (product, mac, code, firmware, *uid) = entry
+
+    if not any(device in product
+               for device in SUPPORTED_PRODUCTS):
+        _LOGGER.info("Unsupported product %s", product)
+        raise ValueError
+    elif (product == 'TellStickNet' and
+          int(firmware) < MIN_TELLSTICKNET_FIRMWARE_VERSION):
+        _LOGGER.info("Unsupported firmware version: %s", firmware)
+        raise ValueError
+    else:
+        return mac, product, firmware
+
+
 def discover(host=DISCOVERY_ADDRESS, timeout=DISCOVERY_TIMEOUT):
     """Scan network for Tellstick Net devices"""
     _LOGGER.info("Discovering tellstick devices ...")
@@ -33,26 +92,18 @@ def discover(host=DISCOVERY_ADDRESS, timeout=DISCOVERY_TIMEOUT):
 
                 _LOGGER.debug('Got %s from %s:%d', data, address, port)
 
-                entry = data.decode("ascii").split(":")
-
-                if len(entry) < 4:
-                    _LOGGER.info("Malformed reply")
-                    continue
-
-                (product, mac, code, firmware, *uid) = entry
+                mac, product, firmware = parse_discovery_packet(data)
 
                 _LOGGER.info("Found %s device with firmware %s at %s",
-                             product, firmware, address)
+                             product,
+                             firmware,
+                             address)
 
-                if not any(device in product
-                           for device in SUPPORTED_PRODUCTS):
-                    _LOGGER.info("Unsupported product %s", product)
-                elif (product == 'TellStickNet' and
-                      int(firmware) < MIN_TELLSTICKNET_FIRMWARE_VERSION):
-                    _LOGGER.info("Unsupported firmware version: %s", firmware)
-                else:
-                    yield address, mac, entry
+                yield (address,
+                       mac)
 
+            except ValueError:
+                continue
             except socket.timeout:
                 break
 
