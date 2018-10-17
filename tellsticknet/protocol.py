@@ -237,8 +237,16 @@ def _decode_list(packet):
     decode a list
     returns tuple (decoded list, rest of packet not consumed)
 
+    >>> _decode_list(b'l3:foo3:bars')
+    (['foo', 'bar'], b'')
     """
-    raise NotImplementedError("Decode for List type missing")
+    rest = packet[1:]
+    result = []
+
+    while rest[0] != TAG_END:
+        item, rest = _decode_any(rest)
+        result.append(item)
+    return result, rest[1:]
 
 
 def _decode_any(packet):
@@ -329,13 +337,13 @@ def decode_packet(packet):
 
     >>> packet = "7:RawDatah5:class6:sensor8:protocol\
 8:mandolyn5:model13:temperaturehumidity4:dataiAF1D466Bss"
-    >>> len(decode_packet(packet)["data"])
-    2
+    >>> decode_packet(packet)["data"][0]["value"]
+    20.4
 
     >>> packet = "7:RawDatah5:class6:sensor8:protocol\
 A:fineoffset4:datai488029FF9Ass"
-    >>> len(decode_packet(packet)["data"])
-    1
+    >>> decode_packet(packet)["data"][0]["value"]
+    4.1
 
     # Not everflourish
     packet = "7:RawDatah8:protocolC:everflourish4:dataiA1CC92ss"
@@ -347,10 +355,8 @@ A:fineoffset4:datai488029FF9Ass"
     >>> packet = "7:RawDatah8:protocolA:fineoffset2:idi98s6:valueslh\
 5:scalei0s4:typei1s5:value4:16.6ss5:modelB:temperature\
 4:datai4980A6FFBBs5:class6:sensors"
-    >>> decode_packet(packet)
-    Traceback (most recent call last):
-    ...
-    NotImplementedError: Decode for List type missing
+    >>> decode_packet(packet)["values"][0]["value"]
+    '16.6'
 
     """
 
