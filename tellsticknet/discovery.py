@@ -8,6 +8,7 @@ DISCOVERY_ADDRESS = '<broadcast>'
 DISCOVERY_PAYLOAD = b"D"
 DISCOVERY_TIMEOUT = timedelta(seconds=5)
 SUPPORTED_PRODUCTS = ['TellStickNet',
+                      'TellstickNetV2',
                       'TellstickZnet']
 
 MIN_TELLSTICKNET_FIRMWARE_VERSION = 17
@@ -29,12 +30,16 @@ def discover(host=DISCOVERY_ADDRESS, timeout=DISCOVERY_TIMEOUT):
         while True:
             try:
                 data, (address, port) = sock.recvfrom(1024)
+
+                _LOGGER.debug('Got %s from %s:%d', data, address, port)
+
                 entry = data.decode("ascii").split(":")
-                if len(entry) != 4:
+
+                if len(entry) < 4:
                     _LOGGER.info("Malformed reply")
                     continue
 
-                (product, mac, code, firmware) = entry
+                (product, mac, code, firmware, *uid) = entry
 
                 _LOGGER.info("Found %s device with firmware %s at %s",
                              product, firmware, address)
