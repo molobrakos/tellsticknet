@@ -114,7 +114,7 @@ def _encode_dict(d):
 
 def _encode_list(l):
     """https://developer.telldus.com/doxygen/html/TellStickNet.html"""
-    raise NotImplementedError()
+    raise NotImplementedError("Encode for List type missing")
 
 
 def _encode_any(t):
@@ -129,7 +129,7 @@ def _encode_any(t):
     elif isinstance(t, list):
         return _encode_list(t)
     else:
-        raise NotImplementedError()
+        raise NotImplementedError("Unknown type")
 
 
 def encode_packet(command, **args):
@@ -238,7 +238,7 @@ def _decode_list(packet):
     returns tuple (decoded list, rest of packet not consumed)
 
     """
-    raise NotImplementedError()
+    raise NotImplementedError("Decode for List type missing")
 
 
 def _decode_any(packet):
@@ -328,30 +328,44 @@ def decode_packet(packet):
     decode a packet
 
     >>> packet = "7:RawDatah5:class6:sensor8:protocol\
-    8:mandolyn5:model13:temperaturehumidity4:dataiAF1D466Bss"
+8:mandolyn5:model13:temperaturehumidity4:dataiAF1D466Bss"
     >>> len(decode_packet(packet)["data"])
     2
 
     >>> packet = "7:RawDatah5:class6:sensor8:protocol\
-    A:fineoffset4:datai488029FF9Ass"
+A:fineoffset4:datai488029FF9Ass"
     >>> len(decode_packet(packet)["data"])
     1
 
-    >>> packet = "7:RawDatah8:protocolC:everflourish4:dataiA1CC92ss"
+    # Not everflourish
+    packet = "7:RawDatah8:protocolC:everflourish4:dataiA1CC92ss"
+    >>> decode_packet(packet)["data"][0]["value"]
+    4.1
+
+
+    # List not yet implemented
+    >>> packet = "7:RawDatah8:protocolA:fineoffset2:idi98s6:valueslh\
+5:scalei0s4:typei1s5:value4:16.6ss5:modelB:temperature\
+4:datai4980A6FFBBs5:class6:sensors"
+    >>> decode_packet(packet)
+    Traceback (most recent call last):
+    ...
+    NotImplementedError: Decode for List type missing
+
     """
+
     if isinstance(packet, str):
         packet = packet.encode()
-    try:
-        command, args = _decode_command(packet)
-        if command == 'zwaveinfo':
-            _LOGGER.info('Got Z-Wave info packet')
-            _LOGGER.debug('%s %s', command, args)
-        elif command == 'RawData':
-            return _decode(**args)
-        else:
-            raise NotImplementedError()
-    except NotImplementedError:
-        _LOGGER.warning("failed to decode packet, skipping: %s", packet)
+
+    command, args = _decode_command(packet)
+
+    if command == 'zwaveinfo':
+        _LOGGER.info('Got Z-Wave info packet')
+        _LOGGER.debug('%s %s', command, args)
+    elif command == 'RawData':
+        return _decode(**args)
+    else:
+        raise NotImplementedError("Unknown command type")
 
 
 def get_protocol(protocol):
