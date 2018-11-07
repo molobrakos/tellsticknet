@@ -125,7 +125,8 @@ def read_credentials():
         return dict(host=d['h'],
                     port=d['p'],
                     username=d['username'],
-                    password=d['pw'])
+                    password=d['pw']),
+                    ssl=d['ssl'])
 
 
 def whitelisted(s,
@@ -557,7 +558,9 @@ def run(config, host):
                        clean_session=False)
     mqtt.username_pw_set(username=credentials['username'],
                          password=credentials['password'])
-    mqtt.tls_set(certs.where())
+
+    if credentials['ssl'] != 'false':
+        mqtt.tls_set(certs.where())
 
     _LOGGER.debug('Setting up devices')
     # FIXME: Make it possible to have more components with same component
