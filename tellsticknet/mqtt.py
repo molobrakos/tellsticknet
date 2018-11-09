@@ -141,18 +141,6 @@ def whitelisted(s,
     return ''.join(c if c in whitelist else substitute for c in s)
 
 
-def make_valid_hass_single_topic_level(s):
-    """Transform a multi level topic to a single level.
-
-    >>> make_valid_hass_single_topic_level('foo/bar/baz')
-    'foo_bar_baz'
-
-    >>> make_valid_hass_single_topic_level('hello å ä ö')
-    'hello______'
-    """
-    return whitelisted(s)
-
-
 def make_topic(*levels):
     """Create a valid topic.
 
@@ -162,9 +150,7 @@ def make_topic(*levels):
     >>> make_topic(('foo', 'bar'))
     'foo/bar'
     """
-    if len(levels) == 1 and isinstance(levels[0], tuple):
-        return make_topic(*levels[0])
-    return '/'.join(levels)
+    return '/'.join(whitelisted(level) for level in levels)
 
 
 @threadsafe
@@ -231,6 +217,10 @@ class Device:
         self.sensors = None  # dict containing sub-items
         self.sensor = sensor  # str for sensor item
 
+        if not self.name:
+            _LOGGER.error('Name is missing for entity %s', entity)
+            exit()
+
         if 'class' not in self.entity:
             # optional in config file, since it can be
             # derrived from presence of the sensorId property
@@ -285,8 +275,6 @@ class Device:
         if not self.is_recipient(packet):
             return False
 
-        _LOGGER.debug('%s receives %s', self, packet)
-
         if self.is_command:
             method = method_for_str(packet['method'])
             state = STATES[method]
@@ -298,7 +286,7 @@ class Device:
                 _LOGGER.debug('Turning off automatically')
                 self.publish_state(STATE_OFF)
 
-        elif self.is_sensor:
+        elif self.sensor is not None:
             state = next(item['value']
                          for item in packet['data']
                          if item['name'] == self.sensor)
@@ -315,7 +303,7 @@ class Device:
                         item['name'])
                     for item in packet['data']}
             for sensor in self.sensors.values():
-                sensor.receive(packet)
+                sensor.receive_local(packet)
 
         return True
 
@@ -325,10 +313,6 @@ class Device:
 
     @property
     def name(self):
-        if self.is_sensor:
-            return '{name} {quantity}'.format(
-                name=self.entity.get('name'),
-                quantity=self.quantity_name)
         return self.entity.get('name')
 
     @property
@@ -354,7 +338,9 @@ class Device:
 
     @property
     def visible_name(self):
-        return self.name or self.unique_id
+        if self.is_sensor:
+            return f'{self.name} {self.quantity_name}'
+        return self.name
 
     @property
     def is_sensor(self):
@@ -381,41 +367,42 @@ class Device:
     def unique_id(self):
         name = self.name.lower()
         if self.is_command:
-            return ('command', self.component, name)
+            return ('command', self.component, self.name.lower())
         elif self.is_sensor:
-            return ('sensor', name)
+            return ('sensor', self.name.lower(), self.quantity_name.lower())
         _LOGGER.error('Should not happen')
 
     @property
-    def controller_topic(self):
-        return make_topic(STATE_PREFIX,
-                          self.controller._mac)
+    def controller_id(self):
+        return (STATE_PREFIX, self.controller._mac)
 
     @property
     def discovery_object_id(self):
-        """object_id should be [a-zA-Z0-9_-+]"""
-        return make_valid_hass_single_topic_level(make_topic(self.unique_id))
+        """e.g. sensor_bedroom_temperature
+                light_kitchen
+        object_id should be [a-zA-Z0-9_-+]"""
+        return whitelisted('_'.join(self.unique_id))
 
     @property
     def discovery_node_id(self):
-        """node_id should be [a-zA-Z0-9_-+]"""
-        return make_valid_hass_single_topic_level(self.controller_topic)
+        """e.g. tellsticknet_ABC123
+        homeassistant node_id should be [a-zA-Z0-9_-+]"""
+        return whitelisted('_'.join(self.controller_id))
 
     @property
     def discovery_topic(self):
+        """e.g. homeassistant/sensor/tellsticknet_ABC123/command_light_bedroom/config"""
         return make_topic(DISCOVERY_PREFIX,
                           self.component,
                           self.discovery_node_id,
                           self.discovery_object_id,
                           'config')
 
-    @property
-    def topic(self):
-        return make_topic(self.controller_topic,
-                          *self.unique_id)
-
     def make_topic(self, *levels):
-        return make_topic(self.topic, *levels)
+        """e.g. tellsticknet/ABC123/command/light/bedroom/set"""
+        return make_topic(*self.controller_id,
+                          *self.unique_id,
+                          *levels)
 
     @property
     def state_topic(self):
@@ -445,7 +432,7 @@ class Device:
                    availability_topic=self.availability_topic,
                    payload_available=STATE_ONLINE,
                    payload_not_available=STATE_OFFLINE)
-        if self.command_topic:
+        if self.is_command and self.command_topic:
             res.update(command_topic=self.command_topic)
         if self.device_class:
             res.update(device_class=self.device_class)
