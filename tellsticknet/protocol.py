@@ -302,8 +302,8 @@ def _decode(**packet):
                          value=value)
                     for name, value
                     in data.items()]
-
-        return packet
+            return packet
+        raise NotImplementedError
     except ImportError:
         SRC_URL = ("https://github.com/telldus/telldus/"
                    "tree/master/telldus-core/service")
