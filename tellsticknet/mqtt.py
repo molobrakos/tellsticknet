@@ -125,7 +125,7 @@ def read_credentials():
         return dict(host=d['h'],
                     port=d['p'],
                     username=d['username'],
-                    password=d['pw']),
+                    password=d['pw'],
                     ssl=d['ssl'])
 
 
