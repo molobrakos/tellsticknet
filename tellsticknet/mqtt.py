@@ -564,9 +564,18 @@ def run(config, host):
     mqtt.on_message = on_message
     mqtt.on_subscribe = on_subscribe
 
+    host = credentials['host']
+    port = credentials['port']
+
     _LOGGER.debug('Connecting')
-    mqtt.connect(host=credentials['host'],
-                 port=int(credentials['port']))
+    try:
+        mqtt.connect(host=host,
+                     port=int(port))
+    except TimeoutError:
+        # FIXME: retry?
+        exit('Could not connect to MQTT server at %s:%s' % (
+            host, port))
+
     mqtt.loop_start()
 
     #  For debugging, allow pipe a previous packet capture to stdin
