@@ -147,8 +147,6 @@ def make_topic(*levels):
     >>> make_topic('foo', 'bar')
     'foo/bar'
 
-    >>> make_topic(('foo', 'bar'))
-    'foo/bar'
     """
     return '/'.join(whitelisted(level) for level in levels)
 
@@ -365,7 +363,6 @@ class Device:
 
     @property
     def unique_id(self):
-        name = self.name.lower()
         if self.is_command:
             return ('command', self.component, self.name.lower())
         elif self.is_sensor:
@@ -391,7 +388,8 @@ class Device:
 
     @property
     def discovery_topic(self):
-        """e.g. homeassistant/sensor/tellsticknet_ABC123/command_light_bedroom/config"""
+        """e.g. homeassistant/sensor/tellsticknet_ABC123/
+                command_light_bedroom/config"""
         return make_topic(DISCOVERY_PREFIX,
                           self.component,
                           self.discovery_node_id,
@@ -471,7 +469,7 @@ class Device:
             with Device.lock:
                 Device.pending[mid] = (topic, self)
         else:
-            _LOGGER.warning('Failure to subscribe to %s', self.topic)
+            _LOGGER.warning('Failure to subscribe to %s', topic)
 
     def subscribe(self):
         if self.is_command:
