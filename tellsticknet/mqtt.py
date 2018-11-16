@@ -15,6 +15,7 @@ from tellsticknet.controller import discover
 from threading import RLock, Event
 from platform import node as hostname
 import string
+from datetime import timedelta
 
 # FIXME: A command can correspond to multiple entities (e.g. switches/lights)
 
@@ -594,22 +595,25 @@ def run(config, host):
     #          print(packet)
     #      exit(0)
 
-    from datetime import timedelta
-    for packet in controller.events(timedelta(seconds=5)):
+    try:
+        for packet in controller.events(timedelta(seconds=5)):
 
-        if not packet:  # timeout
-            continue
+            if not packet:  # timeout
+                continue
 
-        if not Device.connected.is_set():
-            _LOGGER.debug('Waiting for connection')
-            Device.connected.wait()
-            _LOGGER.debug('Connected, start listening for Tellstick packets')
+            if not Device.connected.is_set():
+                _LOGGER.debug('Waiting for connection')
+                Device.connected.wait()
+                _LOGGER.debug('Connected, start listening '
+                              'for Tellstick packets')
 
-        # print('%15s %15s %2s %2s' % (packet['protocol'],
-        #       packet['house'], packet['unit'], packet.get('group', '-')))
-        received = [d.receive_local(packet) for d in Device.devices]
-        if not any(received):
-            _LOGGER.warning('Skipped packet %s', packet)
+            # print('%15s %15s %2s %2s' % (packet['protocol'],
+            #       packet['house'], packet['unit'], packet.get('group', '-')))
+            received = [d.receive_local(packet) for d in Device.devices]
+            if not any(received):
+                _LOGGER.warning('Skipped packet %s', packet)
 
-    # FIXME: Mark as unavailable if not heard from in time t (24 hours?)
-    # FIXME: Use config expire in config (like 6 hours?)
+        # FIXME: Mark as unavailable if not heard from in time t (24 hours?)
+        # FIXME: Use config expire in config (like 6 hours?)
+    except KeyboardInterrupt:
+        exit('Exiting')
