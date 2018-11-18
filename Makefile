@@ -18,7 +18,9 @@ docker-run-mqtt:
                 --name=tellsticknet \
 		--restart=always \
 		--detach \
-		--net=host \
+		--net=bridge \
+		-p 30303:30303/udp \
+		-p 42314:42314/udp \
 		-v $(HOME)/.config/mosquitto_pub:/app/.config/mosquitto_pub:ro \
 		-v $(HOME)/.config/tellsticknet.conf:/app/tellsticknet.conf:ro \
 		$(IMAGE) -vv
@@ -27,7 +29,9 @@ docker-run-mqtt-term:
 	docker run \
 		-ti --rm \
                 --name=tellsticknet \
-		--net=host \
+		--net=bridge \
+		-p 30303:30303/udp \
+		-p 42314:42314/udp \
 		-v $(HOME)/.config/mosquitto_pub:/app/.config/mosquitto_pub:ro \
 		-v $(HOME)/.config/tellsticknet.conf:/app/tellsticknet.conf:ro \
 		$(IMAGE) -vv
