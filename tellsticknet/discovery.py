@@ -75,16 +75,16 @@ def parse_discovery_packet(data):
         return mac, product, firmware
 
 
-def discover(host=DISCOVERY_ADDRESS, timeout=DISCOVERY_TIMEOUT):
+def discover(ip=DISCOVERY_ADDRESS, timeout=DISCOVERY_TIMEOUT):
     """Scan network for Tellstick Net devices"""
     _LOGGER.info("Discovering tellstick devices ...")
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.settimeout(timeout.seconds)
-
+        ip = ip or DISCOVERY_ADDRESS
         sock.sendto(DISCOVERY_PAYLOAD,
-                    (host or DISCOVERY_ADDRESS, DISCOVERY_PORT))
+                    (ip, DISCOVERY_PORT))
 
         while True:
             try:
