@@ -21,13 +21,13 @@ COMMAND_REPEAT_DELAY = timedelta(seconds=1)
 _LOGGER = logging.getLogger(__name__)
 
 
-def discover(host=None):
+def discover(ip=None):
     """
     Return all found controllers on the local network
     N.b this method blocks
     """
     return (Controller(*controller[:2])
-            for controller in discovery.discover(host))
+            for controller in discovery.discover(ip=ip))
 
 
 class Controller:
