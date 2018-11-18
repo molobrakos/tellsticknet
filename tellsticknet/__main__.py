@@ -16,7 +16,7 @@ Usage:
   tellsticknet [-v|-vv] [options] parse
 
 Options:
-  -H <ip>               IP of Tellstick Net device
+  --ip <ip>             IP of Tellstick Net device
   --raw                 Print raw packets instead of parsed data
   -h --help             Show this message
   -v,-vv                Increase verbosity
@@ -83,9 +83,8 @@ def prepend_timestamp(line):
     return "{} {}".format(timestamp, line)
 
 
-def print_event_stream(raw=False):
+def print_event_stream(controllers, raw=False):
     """Print event stream"""
-    controllers = discover()
 
     # for now only care about one controller
     controller = next(controllers, None) or exit('no tellstick devices found')
@@ -150,22 +149,31 @@ if __name__ == "__main__":
 
     if args['parse'] and not stdin.isatty():
         parse_stdin()
+        exit()
     elif args['mock']:
         from tellsticknet.discovery import mock
         mock()
-    elif args['discover']:
-        for c in discover():
-            print(c)
-    elif args['listen']:
-        print_event_stream(raw=args['--raw'])
+        exit()
     elif args['devices']:
         for e in (e for e in read_config() if 'sensorId' not in e):
             print('-', e['name'])
+        exit()
     elif args['sensors']:
         for e in (e for e in read_config() if 'sensorId' in e):
             print('-', e['name'])
+        exit()
+
+    ip = args['--ip']
+    _LOGGER.debug('Discovering Tellstick')
+    controllers = discover(ip=ip)
+
+    if args['discover']:
+        for c in controllers:
+            print(c)
+    elif args['listen']:
+        print_event_stream(controllers, raw=args['--raw'])
     elif args['send']:
-        controller = (next(discover(), None)
+        controller = (next(controller, None)
                       or exit('No tellstick devices found'))
         config = read_config()
 
@@ -204,5 +212,4 @@ if __name__ == "__main__":
     elif args['mqtt']:
         from tellsticknet.mqtt import run
         config = read_config()
-        host = args['-H']
-        run(config, host=host)
+        run(controllers, config)
