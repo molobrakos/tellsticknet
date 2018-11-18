@@ -523,15 +523,12 @@ class Device:
         return SENSOR_NAMES.get(self.sensor)
 
 
-def run(config, host):
+def run(controllers, config):
+
+    controller = next(controllers, None) or exit('no tellstick devices found')
 
     _LOGGER.debug('Reading credentials')
     credentials = read_credentials()
-
-    _LOGGER.debug('Discovering Tellstick')
-    # FIXME: Allow multiple controllers on same network (just loop in init)
-    controllers = discover(host)
-    controller = next(controllers, None) or exit('no tellstick devices found')
 
     client_id = 'tellsticknet_{hostname}_{time}'.format(
         hostname=hostname(),
