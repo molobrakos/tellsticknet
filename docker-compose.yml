@@ -1,0 +1,21 @@
+version: "2.2"
+networks:
+  tellsticknet:
+    driver: bridge
+services:
+  tellsticknet:
+    build:
+      context: .
+    container_name: tellstick
+    image: molobrakos/tellsticknet
+    restart: unless-stopped
+    ports:
+      - "30303:30303/udp"
+      - "42314:42314/udp"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ~/.config/tellsticknet.conf:/app/.config/tellsticknet.conf:ro
+      - ~/.config/mosquitto_pub:/app/.config/mosquitto_pub:ro
+    command: -vv --ip <ip>
+    networks:
+      - tellsticknet
