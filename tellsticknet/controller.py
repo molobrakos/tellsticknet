@@ -50,7 +50,9 @@ class Controller:
         packet = encode_packet(command, **args)
         _LOGGER.debug("Sending packet to controller %s:%d <%s>",
                       self._ip, COMMAND_PORT, packet)
-        sock.sendto(packet, (self._ip, COMMAND_PORT))
+        res = sock.sendto(packet, (self._ip, COMMAND_PORT))
+        if (res != len(packet)):
+            raise OSError('Could not send all of packet')
 
     def _register_if_needed(self, sock):
         """ register self at controller """
