@@ -76,6 +76,7 @@ class Controller:
         """Listen forever for network events, yield stream of packets"""
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            sock.bind(('', COMMAND_PORT))
             sock.setblocking(1)
             sock.settimeout((timeout or TIMEOUT).seconds)
             while True:
