@@ -11,7 +11,6 @@ from threading import current_thread
 import paho.mqtt.client as paho
 from paho.mqtt.client import MQTT_ERR_SUCCESS
 import tellsticknet.const as const
-from tellsticknet.controller import discover
 from threading import RLock, Event
 from platform import node as hostname
 import string
