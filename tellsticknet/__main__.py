@@ -173,7 +173,7 @@ if __name__ == "__main__":
     elif args['listen']:
         print_event_stream(controllers, raw=args['--raw'])
     elif args['send']:
-        controller = (next(controller, None)
+        controller = (next(controllers, None)
                       or exit('No tellstick devices found'))
         config = read_config()
 
