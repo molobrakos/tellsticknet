@@ -2,6 +2,9 @@ import socket
 import logging
 from datetime import timedelta
 from pprint import pprint
+import asyncio
+
+from .util import sock_sendto, sock_recvfrom
 
 DISCOVERY_PORT = 30303
 DISCOVERY_ADDRESS = '<broadcast>'
@@ -75,37 +78,44 @@ def parse_discovery_packet(data):
         return mac, product, firmware
 
 
-def discover(ip=DISCOVERY_ADDRESS, timeout=DISCOVERY_TIMEOUT):
+# FIXME: currently blocking make async
+async def discover(ip=DISCOVERY_ADDRESS,
+                   timeout=DISCOVERY_TIMEOUT,
+                   discover_all=False):
     """Scan network for Tellstick Net devices"""
     _LOGGER.info("Discovering tellstick devices ...")
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.settimeout(timeout.seconds)
-        ip = ip or DISCOVERY_ADDRESS
-        sock.sendto(DISCOVERY_PAYLOAD,
-                    (ip, DISCOVERY_PORT))
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            sock.setblocking(0)
+            ip = ip or DISCOVERY_ADDRESS
+            address = (ip, DISCOVERY_PORT)
+            await sock_sendto(sock, DISCOVERY_PAYLOAD, address)
 
-        while True:
-            try:
-                data, (address, port) = sock.recvfrom(1024)
+            # sock.settimeout(timeout.seconds)
 
-                _LOGGER.debug('Got %s from %s:%d', data, address, port)
-
-                mac, product, firmware = parse_discovery_packet(data)
-
-                _LOGGER.info("Found %s device with firmware %s at %s",
-                             product,
-                             firmware,
-                             address)
-
-                yield (address,
-                       mac)
-
-            except ValueError:
-                continue
-            except socket.timeout:
-                break
+            while True:
+                try:
+                    data, (address, port) = await asyncio.wait_for(
+                        sock_recvfrom(sock, 1024),
+                        timeout.seconds)
+                    _LOGGER.debug('Got %s from %s:%d', data, address, port)
+                    mac, product, firmware = parse_discovery_packet(data)
+                    _LOGGER.info("Found %s device with firmware %s at %s",
+                                 product,
+                                 firmware,
+                                 address)
+                    yield (address, mac)
+                    if not discover_all:
+                        return
+                except asyncio.TimeoutError:
+                    _LOGGER.debug('Discovery timeout')
+                    break
+                except ValueError:
+                    continue
+    except OSError:
+        return
 
 
 def mock():
@@ -115,14 +125,15 @@ def mock():
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.bind((DISCOVERY_ADDRESS, DISCOVERY_PORT))
         while True:
-            data, (address, port) = sock.recvfrom(1024)
+            data, address = sock.recvfrom(1024)
             if data == DISCOVERY_PAYLOAD:
                 _LOGGER.info("Got discovery request, replying")
                 response = "%s:MAC:CODE:%d" % (
                     'TellstickNet',
                     MIN_TELLSTICKNET_FIRMWARE_VERSION)
-                sock.sendto(response.encode("ascii"),
-                            (address, port))
+                sock_sendto(sock,
+                            response.encode("ascii"),
+                            address)
 
 
 if __name__ == '__main__':

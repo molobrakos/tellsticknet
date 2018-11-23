@@ -20,6 +20,7 @@ Options:
   --raw                 Print raw packets instead of parsed data
   -h --help             Show this message
   -v,-vv                Increase verbosity
+  -d                    Debug
   --version             Show version
 """
 
@@ -27,11 +28,13 @@ import docopt
 import logging
 import re
 from datetime import datetime
-from sys import argv, stdout, stderr, stdin
+from sys import argv, stdout, stderr, stdin, version_info
 from os.path import join, dirname, expanduser
 from os import environ as env
 from itertools import product
 from yaml import safe_load_all as load_yaml
+
+import asyncio
 
 from tellsticknet import __version__, const
 from tellsticknet.protocol import decode_packet
@@ -43,6 +46,8 @@ LOGFMT = "%(asctime)s %(levelname)5s (%(threadName)s) [%(name)s] %(message)s"
 DATEFMT = "%y-%m-%d %H:%M.%S"
 LOG_LEVEL = logging.DEBUG
 _LOGGER = logging.getLogger(__name__)
+
+_ = version_info >= (3, 7) or exit('Python 3.7 required')
 
 
 def parse_isoformat(s):
@@ -83,18 +88,17 @@ def prepend_timestamp(line):
     return "{} {}".format(timestamp, line)
 
 
-def print_event_stream(controllers, raw=False):
+async def print_event_stream(controller, raw=False):
     """Print event stream"""
 
-    # for now only care about one controller
-    controller = next(controllers, None) or exit('no tellstick devices found')
-
     if raw:
-        stream = map(prepend_timestamp, controller.packets())
+        stream = (prepend_timestamp(packet)
+                  async for packet in controller.packets())
     else:
-        stream = (to_json(event) for event in controller.events())
+        stream = (to_json(event)
+                  async for event in controller.events())
 
-    for packet in stream:
+    async for packet in stream:
         print(packet)
         try:
             stdout.flush()
@@ -128,24 +132,19 @@ def read_config():
     return {}
 
 
-if __name__ == "__main__":
-    args = docopt.docopt(__doc__,
-                         version=__version__)
+async def main(args):
 
-    log_level = [logging.ERROR, logging.INFO, logging.DEBUG][args['-v']]
+    loop = asyncio.get_event_loop()
 
-    try:
-        import coloredlogs
-        coloredlogs.install(level=log_level,
-                            stream=stderr,
-                            datefmt=DATEFMT,
-                            fmt=LOGFMT)
-    except ImportError:
-        _LOGGER.debug("no colored logs. pip install coloredlogs?")
-        logging.basicConfig(level=log_level,
-                            stream=stderr,
-                            datefmt=DATEFMT,
-                            format=LOGFMT)
+    def poller(then=None):
+        interval = 5
+        now = loop.time()
+        if then:
+            _LOGGER.debug('Poller %f Took %f', interval, now - then)
+        loop.call_later(interval, poller, now)
+
+    if loop.get_debug():
+        poller()
 
     if args['parse'] and not stdin.isatty():
         parse_stdin()
@@ -164,19 +163,29 @@ if __name__ == "__main__":
         exit()
 
     ip = args['--ip']
-    _LOGGER.debug('Discovering Tellstick')
-    controllers = discover(ip=ip)
 
     if args['discover']:
-        for c in controllers:
+        async for c in await discover(ip=ip, discover_all=True):
             print(c)
-    elif args['listen']:
-        print_event_stream(controllers, raw=args['--raw'])
-    elif args['send']:
-        controller = (next(controllers, None)
-                      or exit('No tellstick devices found'))
-        config = read_config()
+        exit()
 
+    config = read_config()
+
+    from functools import partial
+    if args['mqtt']:
+        from tellsticknet.mqtt import run
+        await run(partial(discover, ip=ip), config)
+        exit()
+
+    controller = await discover(ip=ip)
+    if not controller:
+        exit('No tellstick device found')
+
+    _LOGGER.info('Found controller: %s', controller)
+
+    if args['listen']:
+        await print_event_stream(controller, raw=args['--raw'])
+    elif args['send']:
         cmd = args['<cmd>']
         METHODS = dict(
             on=const.TURNON,
@@ -201,15 +210,55 @@ if __name__ == "__main__":
         unit = args['<unit>']
 
         if name:
-            devices = (e for e in config
-                       if e['name'].lower().startswith(name.lower()))
+            devices = [e for e in config
+                       if e['name'].lower().startswith(
+                               name.lower())]
             if not devices:
                 exit(f'Device with name {name} not found')
         elif protocol and model and house and unit:
             exit('Not implemented')
-        for device in devices:
+
+        if not devices:
+            exit('No devices found')
+
+        _LOGGER.info("Executing for %d devices", len(devices))
+
+        _LOGGER.debug('Waiting for tasks to finish')
+        await asyncio.gather(*[
             controller.execute(device, method, param=param)
-    elif args['mqtt']:
-        from tellsticknet.mqtt import run
-        config = read_config()
-        run(controllers, config)
+            for device in devices])
+
+
+if __name__ == "__main__":
+    args = docopt.docopt(__doc__,
+                         version=__version__)
+
+    debug = args['-d']
+
+    if debug:
+        log_level = logging.DEBUG
+    else:
+        log_level = [logging.ERROR, logging.INFO, logging.DEBUG][args['-v']]
+
+    try:
+        import coloredlogs
+        coloredlogs.install(level=log_level,
+                            stream=stderr,
+                            datefmt=DATEFMT,
+                            fmt=LOGFMT)
+    except ImportError:
+        _LOGGER.debug("no colored logs. pip install coloredlogs?")
+        logging.basicConfig(level=log_level,
+                            stream=stderr,
+                            datefmt=DATEFMT,
+                            format=LOGFMT)
+
+    logging.captureWarnings(debug)
+
+    if debug:
+        _LOGGER.info('Debug is on')
+
+    try:
+        asyncio.run(main(args), debug=debug)  # pylint: disable=no-member
+    except KeyboardInterrupt:
+        exit()

@@ -2,4 +2,4 @@ docopt
 setuptools
 requests
 pyyaml
-paho-mqtt
+hbmqtt

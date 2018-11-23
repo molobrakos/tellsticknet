@@ -6,15 +6,12 @@ from json import dumps as dump_json
 from os import environ as env
 from os.path import join, expanduser
 from time import time
-from requests import certs
-from threading import current_thread
-import paho.mqtt.client as paho
-from paho.mqtt.client import MQTT_ERR_SUCCESS
 import tellsticknet.const as const
-from threading import RLock, Event
 from platform import node as hostname
 import string
-from datetime import timedelta
+from hbmqtt.client import MQTTClient, ConnectException, ClientException
+import asyncio
+
 
 # FIXME: A command can correspond to multiple entities (e.g. switches/lights)
 
@@ -87,17 +84,6 @@ DEVICE_PROPERTIES = ['protocol',
                      'sensorId']
 
 
-def threadsafe(function):
-    """ Synchronization decorator.
-    The paho MQTT library runs the on_subscribe etc callbacks
-    in its own thread and since we keep track of subscriptions etc
-    in Device.subscriptions, we need to synchronize threads."""
-    def wrapper(*args, **kw):
-        with Device.lock:
-            return function(*args, **kw)
-    return wrapper
-
-
 def method_for_str(s):
     """Map 'turnon' -> TURNON=1 etc.
 
@@ -151,62 +137,9 @@ def make_topic(*levels):
     return '/'.join(whitelisted(level) for level in levels)
 
 
-@threadsafe
-def on_connect(client, userdata, flags, rc):
-    current_thread().setName('MQTTThread')
-    if rc != MQTT_ERR_SUCCESS:
-        _LOGGER.error('Failure to connect: %d', rc)
-        return
-
-    _LOGGER.info('Connected')
-    if flags.get('session present', False):
-        _LOGGER.debug('Session present')
-    else:
-        _LOGGER.debug('Session not present, resubscribe to topics')
-        for device in Device.devices:
-            if device.is_command:
-                # Commands are visible directly, sensors when data available
-                device.publish_discovery()
-
-    # Go on
-    Device.connected.set()
-
-
-@threadsafe
-def on_publish(client, userdata, mid):
-    _LOGGER.debug('Successfully published on %s: %s',
-                  *Device.pending.pop(mid))
-
-
-def on_disconnect(client, userdata, rc):
-    if rc == MQTT_ERR_SUCCESS:
-        # we called disconnect ourselves
-        _LOGGER.info('Disconnect successful')
-    else:
-        _LOGGER.warning('Disconnected, automatically reconnecting')
-        Device.connected.clear()
-
-
-@threadsafe
-def on_subscribe(client, userdata, mid, qos):
-    topic, device = Device.pending.pop(mid)
-    _LOGGER.debug(f'Successfully subscribed to %s', topic)
-    client.message_callback_add(topic, device.on_mqtt_message)
-
-
-@threadsafe
-def on_message(client, userdata, message):
-    _LOGGER.warning('Got unhandled message on '
-                    f'{message.topic}: {message.payload}')
-
-
 class Device:
 
-    devices = []
-    pending = {}
-
-    lock = RLock()
-    connected = Event()
+    subscriptions = {}
 
     def __init__(self, entity, mqtt, controller, sensor=None):
         self.entity = entity
@@ -252,23 +185,32 @@ class Device:
         return any(is_recipient(command)
                    for command in self.commands)
 
-    def on_mqtt_message(self, client, userdata, message):
+    @classmethod
+    async def route_message(cls, topic, payload):
+        device = Device.subscriptions.get(topic)
+        if device:
+            await device.receive_message(topic, payload)
+        else:
+            _LOGGER.warning('No subscriber to message on topic %s', topic)
+
+    async def receive_message(self, topic, payload):
         """Receive a packet from MQTT, e.g. from Home Assistant."""
-        topic = message.topic
-        payload = message.payload.decode()
         _LOGGER.debug('Received payload %s on topic %s', payload, topic)
         if topic == self.command_topic:
             method = method_for_str(payload)
             if not method:
                 _LOGGER.warning('Unknown method: %s', payload)
                 return
-            self.publish_state(payload)  # republish as new state
+            await self.publish_state(payload)  # republish as new state
             self.execute(method)
         elif topic == self.brightness_command_topic:
-            self.publish(self.brightness_state_topic, payload, retain=True)
+            await self.publish(self.brightness_state_topic,
+                               payload, retain=True)
             self.execute(const.DIM, param=payload)
+        else:
+            _LOGGER.warning('Unknown topic: %s', topic)
 
-    def receive_local(self, packet):
+    async def receive_local(self, packet):
         """Receive a packet form the controller / local network / UDP."""
         if not self.is_recipient(packet):
             return False
@@ -276,20 +218,20 @@ class Device:
         if self.is_command:
             method = method_for_str(packet['method'])
             state = STATES[method]
-            self.publish_availability()
-            self.publish_state(state)
+            await self.publish_availability()
+            await self.publish_state(state)
 
             if method == const.TURNON and self.auto_off:
                 #  FIXME: wait 10 seconds?
                 _LOGGER.debug('Turning off automatically')
-                self.publish_state(STATE_OFF)
+                await self.publish_state(STATE_OFF)
 
         elif self.sensor is not None:
             state = next(item['value']
                          for item in packet['data']
                          if item['name'] == self.sensor)
-            self.publish_discovery()  # imples availability
-            self.publish_state(state)
+            await self.publish_discovery()  # imples availability
+            await self.publish_state(state)
         else:
             # Delegate to aggregate of sensors
             if not self.sensors:
@@ -301,7 +243,7 @@ class Device:
                         item['name'])
                     for item in packet['data']}
             for sensor in self.sensors.values():
-                sensor.receive_local(packet)
+                await sensor.receive_local(packet)
 
         return True
 
@@ -452,44 +394,41 @@ class Device:
         # FIXME: Missing components: cover etc
         return res
 
-    def publish(self, topic, payload, retain=False):
-        payload = dump_json(payload) if isinstance(payload, dict) else payload
-        _LOGGER.debug(f'Publishing on {topic} (retain={retain}): {payload}')
-        res, mid = self.mqtt.publish(topic, payload, retain=retain)
-        if res == MQTT_ERR_SUCCESS:
-            with Device.lock:
-                Device.pending[mid] = (topic, payload)
-        else:
-            _LOGGER.warning('Failure to publish on %s', topic)
+    async def publish(self, topic, payload, retain=False):
+        payload = (dump_json(payload)
+                   if isinstance(payload, dict)
+                   else str(payload))
+        _LOGGER.debug(f'Publishing on {topic}: {payload}')
+        await self.mqtt.publish(topic, payload.encode('utf-8'), retain=retain)
+        _LOGGER.debug(f'Published on {topic}: {payload}')
 
-    def subscribe_to(self, topic):
+    async def subscribe_to(self, topic):
         _LOGGER.debug('Subscribing to %s', topic)
-        res, mid = self.mqtt.subscribe(topic)
-        if res == MQTT_ERR_SUCCESS:
-            with Device.lock:
-                Device.pending[mid] = (topic, self)
-        else:
-            _LOGGER.warning('Failure to subscribe to %s', topic)
+        from hbmqtt.mqtt.constants import QOS_1
+        await self.mqtt.subscribe([
+            (topic, QOS_1)
+        ])
+        _LOGGER.debug('Subscribed to %s', topic)
+        Device.subscriptions[topic] = self
 
-    def subscribe(self):
+    async def subscribe(self):
         if self.is_command:
-            self.subscribe_to(self.command_topic)
+            await self.subscribe_to(self.command_topic)
         if self.is_dimmer:
-            self.subscribe_to(self.brightness_command_topic)
+            await self.subscribe_to(self.brightness_command_topic)
 
     def execute(self, command, param=None):
-        self.controller.execute(self.command, command, param=param,
-                                asynchronous=True)
+        self.controller.execute(self.command, command, param=param)
 
-    def publish_discovery(self, items=None):
-        self.publish(self.discovery_topic,
-                     self.discovery_payload, retain=True)
-        self.publish_availability()
-        self.subscribe()
+    async def publish_discovery(self, items=None):
+        await self.publish(self.discovery_topic,
+                           self.discovery_payload, retain=True)
+        await self.publish_availability()
+        await self.subscribe()
 
-    def publish_availability(self):
-        self.publish(self.availability_topic, STATE_ONLINE,
-                     retain=self.is_command)
+    async def publish_availability(self):
+        await self.publish(self.availability_topic, STATE_ONLINE,
+                           retain=self.is_command)
 
     def maybe_invert(self, state):
         if self.invert and state in [STATE_ON, STATE_OFF]:
@@ -500,14 +439,14 @@ class Device:
             return STATE_ON
         return state
 
-    def publish_state(self, state):
+    async def publish_state(self, state):
         # FIXME: Better to invert payload_foo in config?
         state = self.maybe_invert(state)
         if not state:
             _LOGGER.warning(f'No state available for {self}')
             return
         _LOGGER.debug(f'Publishing state for {self}: {state}')
-        self.publish(self.state_topic, state, retain=self.is_command)
+        await self.publish(self.state_topic, state, retain=self.is_command)
 
     @property
     def unit(self):
@@ -522,9 +461,12 @@ class Device:
         return SENSOR_NAMES.get(self.sensor)
 
 
-def run(controllers, config):
+async def run(discover, config):
+    _LOGGER.debug('Found %d devices in config', len(config))
 
-    controller = next(controllers, None) or exit('no tellstick devices found')
+    logging.getLogger(
+        'hbmqtt.client.plugins.packet_logger_plugin').setLevel(
+            logging.WARNING)
 
     _LOGGER.debug('Reading credentials')
     credentials = read_credentials()
@@ -535,81 +477,83 @@ def run(controllers, config):
 
     _LOGGER.debug('Client id is %s', client_id)
 
-    mqtt = paho.Client(client_id=client_id,
-                       clean_session=False)
-    mqtt.username_pw_set(username=credentials['username'],
-                         password=credentials['password'])
-    mqtt.tls_set(certs.where())
+    mqtt = MQTTClient(client_id=client_id)
 
-    _LOGGER.debug('Setting up devices')
+    url = credentials.get('url')
+
+    if not url:
+        try:
+            username = credentials['username']
+            password = credentials['password']
+            host = credentials['host']
+            port = credentials['port']
+            url = f'mqtts://{username}:{password}@{host}:{port}'
+        except Exception as e:
+            exit(e)
+
+    devices_setup = asyncio.Event()
+
+    async def mqtt_task():
+        try:
+            _LOGGER.info('Connecting')
+            await mqtt.connect(url, cleansession=False)
+            _LOGGER.info('Connected to MQTT server')
+        except ConnectException as e:
+            exit('Could not connect to MQTT server: %s' % e)
+
+        await devices_setup.wait()
+        while True:
+            _LOGGER.debug('Waiting for MQTT messages')
+            try:
+                message = await mqtt.deliver_message()
+                packet = message.publish_packet
+                topic = packet.variable_header.topic_name
+                payload = packet.payload.data.decode('ascii')
+                _LOGGER.debug('got message on %s: %s', topic, payload)
+                await Device.route_message(topic, payload)
+            except ClientException as e:
+                _LOGGER.error('MQTT Client exception: %s', e)
+
+    loop = asyncio.get_event_loop()
+    loop.create_task(mqtt_task())
+    controller = await discover()
+
+    if not controller:
+        await mqtt._connected_state.wait()
+        await mqtt.disconnect()
+        exit('No tellstick device found')
+
+    _LOGGER.info('Controller found')
+    await mqtt._connected_state.wait()
+    _LOGGER.info('Connected to MQTT server')
+
     # FIXME: Make it possible to have more components with same component
     # type but different device_class_etc
 
-    _LOGGER.debug('Found %d devices in config', len(config))
-    Device.devices = [Device(e, mqtt, controller)
-                      for e in config
-                      if e.get('controller',
-                               controller._mac).lower() in (
-                                   controller._ip,
-                                   controller._mac)]
+    _LOGGER.debug('Setting up devices')
+    devices = [
+        Device(e, mqtt, controller)
+        for e in config
+        if e.get('controller',
+                 controller.mac_address).lower() in (
+                     controller.ip_address,
+                     controller.mac_address)]
+    _LOGGER.debug('Configured %d devices', len(devices))
+    devices_setup.set()
 
-    _LOGGER.debug('Configured %d devices', len(Device.devices))
+    # Commands are visible directly,
+    # sensors only when data becomes available
+    await asyncio.gather(*[
+        device.publish_discovery()
+        for device in devices
+        if device.is_command])
 
-    mqtt.on_connect = on_connect
-    mqtt.on_disconnect = on_disconnect
-    mqtt.on_publish = on_publish
-    mqtt.on_message = on_message
-    mqtt.on_subscribe = on_subscribe
-
-    host = credentials['host']
-    port = credentials['port']
-
-    _LOGGER.debug('Connecting')
-    try:
-        mqtt.connect(host=host,
-                     port=int(port))
-    except TimeoutError:
-        # FIXME: retry?
-        exit('Could not connect to MQTT server at %s:%s' % (
-            host, port))
-
-    mqtt.loop_start()
-
-    #  For debugging, allow pipe a previous packet capture to stdin
-    #  FIXME: flag instead
-    #  from sys import stdin
-    #  from tellsticknet.protocol import decode_packet
-    #  if not stdin.isatty():
-    #      for line in stdin.readlines():
-    #          line = line.strip()
-    #          timestamp, line = line.split(' ', 1)
-    #          packet = decode_packet(line)
-    #          if packet is None:
-    #              continue
-    #          if not any(d.receive(packet) for d in devices):
-    #              _LOGGER.warning('Skipped packet %s', packet)
-    #          print(packet)
-    #      exit(0)
-
-    try:
-        for packet in controller.events(timedelta(seconds=5)):
-
-            if not packet:  # timeout
-                continue
-
-            if not Device.connected.is_set():
-                _LOGGER.debug('Waiting for connection')
-                Device.connected.wait()
-                _LOGGER.debug('Connected, start listening '
-                              'for Tellstick packets')
-
-            # print('%15s %15s %2s %2s' % (packet['protocol'],
-            #       packet['house'], packet['unit'], packet.get('group', '-')))
-            received = [d.receive_local(packet) for d in Device.devices]
-            if not any(received):
-                _LOGGER.warning('Skipped packet %s', packet)
-
+    _LOGGER.info('Waiting for packets')
+    async for packet in controller.events():
+        if not packet:  # timeout
+            continue
+        received = [await d.receive_local(packet) for d in devices]
+        if not any(received):
+            _LOGGER.warning('Skipped packet %s', packet)
         # FIXME: Mark as unavailable if not heard from in time t (24 hours?)
         # FIXME: Use config expire in config (like 6 hours?)
-    except KeyboardInterrupt:
-        exit('Exiting')

@@ -1,11 +1,11 @@
 import socket
 import logging
-from datetime import datetime, timedelta
-from time import time, sleep
-from threading import Thread
-from queue import Queue, Empty
+from datetime import timedelta
+from time import time
 from . import discovery
 from .protocol import encode_packet, decode_packet, encode
+import asyncio
+from .util import sock_recvfrom, sock_sendto
 
 COMMAND_PORT = 42314
 TIMEOUT = timedelta(seconds=30)
@@ -21,83 +21,96 @@ COMMAND_REPEAT_DELAY = timedelta(seconds=1)
 _LOGGER = logging.getLogger(__name__)
 
 
-def discover(ip=None):
+async def discover(ip=None, discover_all=False):
     """
     Return all found controllers on the local network
-    N.b this method blocks
     """
-    return (Controller(*controller[:2])
-            for controller in discovery.discover(ip=ip))
+
+    def make_controller(discovery_data):
+        return Controller(*discovery_data[:2])
+
+    discoverer = discovery.discover(ip=ip, discover_all=discover_all)
+    if discover_all:
+        return (make_controller(discovery_data)
+                async for discovery_data in discoverer)
+    try:
+        return make_controller(
+            await discoverer.__anext__())  # pylint: disable=no-member
+    except StopAsyncIteration:
+        return None
 
 
 class Controller:
 
     def __init__(self, ip, mac):
-        _LOGGER.debug("creating controller with address %s (%s)", ip, mac)
-        self._ip = ip
-        self._mac = mac.lower()
+        self._address = (ip, COMMAND_PORT)
+        self._mac = mac
         self._last_registration = None
         self._commands = None
+        _LOGGER.debug("Created controller: %s", self)
+
+    @property
+    def ip_address(self):
+        return self._address[0]
+
+    @property
+    def mac_address(self):
+        return self._mac.lower()
 
     def __repr__(self):
-        return f'Controller@{self._ip} ({self._mac})'
+        return f'Controller@{self.ip_address} ({self.mac_address})'
 
-    def _send(self, sock, command, **args):
+    async def _send(self, sock, command, **args):
         """Send a command to the controller
         Available commands documented in
         https://github.com/telldus/tellstick-net/blob/master/
             firmware/tellsticknet.c"""
         packet = encode_packet(command, **args)
-        _LOGGER.debug("Sending packet to controller %s:%d <%s>",
-                      self._ip, COMMAND_PORT, packet)
-        res = sock.sendto(packet, (self._ip, COMMAND_PORT))
+        _LOGGER.debug("Sending packet to controller %s <%s>",
+                      self._address, packet)
+        res = await sock_sendto(sock, packet, self._address)
         if (res != len(packet)):
             raise OSError('Could not send all of packet')
 
-    def _register_if_needed(self, sock):
-        """ register self at controller """
-
-        if self._last_registration:
-            since_last_check = datetime.now() - self._last_registration
-            if since_last_check < REGISTRATION_INTERVAL:
-                return
-
-        _LOGGER.info("Registering self as listener for device at %s",
-                     self._ip)
-
-        try:
-            self._send(sock, "reglistener")
-            self._last_registration = datetime.now()
-        except OSError:  # e.g. Network is unreachable
-            # just retry
-            pass
-
-    def packets(self, timeout=None):
+    async def packets(self):
         """Listen forever for network events, yield stream of packets"""
+
+        async def registrator_task(sock):
+            while True:
+                try:
+                    await self._send(sock, "reglistener")
+                    _LOGGER.info(
+                        "Registered self as listener for device at %s",
+                        self._address)
+                except OSError:  # e.g. Network is unreachable
+                    # just retry
+                    _LOGGER.warning('Could not send registration packet')
+                    pass
+                await asyncio.sleep(REGISTRATION_INTERVAL.seconds)
+
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             sock.bind(('', COMMAND_PORT))
-            sock.setblocking(1)
-            sock.settimeout((timeout or TIMEOUT).seconds)
+            sock.setblocking(0)
+            loop = asyncio.get_event_loop()
+            loop.create_task(registrator_task(sock))
             while True:
-                self._register_if_needed(sock)
                 try:
-                    _LOGGER.debug("Listening for signals from %s", self._ip)
-                    response, (ip, port) = sock.recvfrom(1024)
-                    _LOGGER.debug("Got packet from %s:%d", ip, port)
-                    if ip == self._ip:
+                    response, address = await sock_recvfrom(sock, 1024)
+                    _LOGGER.debug("Got packet from %s", address)
+                    if address == self._address:
                         yield response.decode("ascii")
-                except socket.timeout:
-                    if timeout:
-                        yield None
-                except OSError:
-                    pass
+                    else:
+                        _LOGGER.warning('Got unknown response from %s: %s',
+                                        address, response)
+                except OSError as e:
+                    _LOGGER.warning('Could not receive from socket: %s', e)
 
-    def events(self, timeout=None):
-        for packet in self.packets(timeout):
+    async def events(self):
+        async for packet in self.packets():  # pylint: disable=not-an-iterable
 
             if not packet:
-                yield None  # timeout
+                yield None
                 continue
 
             try:
@@ -112,15 +125,7 @@ class Controller:
 
             yield packet
 
-    def _start_sender_thread(self):
-        if self._commands:
-            return
-        self._commands = Queue()
-        Thread(target=self._async_executor,
-               name='SenderThread',
-               daemon=True).start()
-
-    def _execute(self, device, method, param=None):
+    async def _execute(self, device, method, param):
         """arctech on/off implemented in firmware here:
          https://github.com/telldus/tellstick-net/blob/master/firmware/tellsticknet.c#L58
          https://github.com/telldus/tellstick-net/blob/master/firmware/transmit_arctech.c
@@ -133,46 +138,26 @@ class Controller:
 
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            sock.setblocking(1)
-            self._send(sock, 'send', **packet)
-
-    def execute(self, device, method,
-                param=None,
-                repeat=COMMAND_REPEAT_TIMES,
-                asynchronous=False):
-        if asynchronous:
-            self._start_sender_thread()
-            self._commands.put((device, method, param, repeat))
-        else:
-            for i in range(0, repeat):
-                sleep(COMMAND_REPEAT_DELAY.seconds if i else 0)
-                _LOGGER.debug('Sending time %d', i+1)
-                self._execute(device, method, param)
-
-    def _async_executor(self):
-        pending_commands = {}
-
-        def defer(device, method, param, repeat):
-            key = tuple(device.values())
-            if repeat:
-                pending_commands[key] = (device, method, param, repeat)
-            else:
-                pending_commands.pop(key)
-
-        while True:
+            sock.setblocking(0)
             try:
-                timeout = (COMMAND_REPEAT_DELAY.seconds
-                           if pending_commands else None)
-                _LOGGER.debug('Waiting for command %s',
-                              ('for %d seconds' % timeout)
-                              if timeout else 'forever')
-                defer(*self._commands.get(block=True, timeout=timeout))
-            except Empty:
-                _LOGGER.debug('Queue was empty')
-                pass
+                await self._send(sock, 'send', **packet)
+            except OSError as e:
+                _LOGGER.warning('Could not send to socket: %s', e)
 
-            for (device, method, param, repeat) in list(
-                    pending_commands.values()):
-                _LOGGER.debug('Sending time %d', repeat)
-                self._execute(device, method, param)
-                defer(device, method, param, repeat-1)
+    def execute(self,
+                device,
+                method,
+                param=None,
+                repeat=COMMAND_REPEAT_TIMES):
+
+        async def task():
+            for i in range(0, repeat):
+                _LOGGER.debug('Sending time %d of %d', i+1, repeat)
+                await self._execute(device, method, param)
+                if i < repeat - 1:
+                    _LOGGER.debug('Waiting %d seconds',
+                                  COMMAND_REPEAT_DELAY.seconds)
+                await asyncio.sleep(COMMAND_REPEAT_DELAY.seconds if i else 0)
+
+        loop = asyncio.get_event_loop()
+        return loop.create_task(task())
