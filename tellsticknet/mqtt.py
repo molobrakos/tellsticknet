@@ -487,7 +487,8 @@ async def run(discover, config):
             password = credentials['password']
             host = credentials['host']
             port = credentials['port']
-            url = f'mqtts://{username}:{password}@{host}:{port}'
+            protocol = 'mqtt' if port == 1883 else 'mqtts'
+            url = f'{protocol}://{username}:{password}@{host}:{port}'
         except Exception as e:
             exit(e)
 
