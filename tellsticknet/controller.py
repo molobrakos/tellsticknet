@@ -29,7 +29,8 @@ async def discover(ip=None, discover_all=False):
     def make_controller(discovery_data):
         return Controller(*discovery_data[:2])
 
-    discoverer = discovery.discover(ip=ip, discover_all=discover_all)
+    discoverer = discovery.discover(
+        ip=ip, discover_all=discover_all)  # pylint: disable=not-an-iterable
     if discover_all:
         return (make_controller(discovery_data)
                 async for discovery_data in discoverer)
