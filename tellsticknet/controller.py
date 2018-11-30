@@ -33,7 +33,7 @@ async def discover(ip=None, discover_all=False):
         ip=ip, discover_all=discover_all)  # pylint: disable=not-an-iterable
     if discover_all:
         return (make_controller(discovery_data)
-                async for discovery_data in discoverer)
+                async for discovery_data in discoverer)  # pylint: disable=not-an-iterable
     try:
         return make_controller(
             await discoverer.__anext__())  # pylint: disable=no-member
