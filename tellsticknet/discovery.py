@@ -78,7 +78,6 @@ def parse_discovery_packet(data):
         return mac, product, firmware
 
 
-# FIXME: currently blocking make async
 async def discover(ip=DISCOVERY_ADDRESS,
                    timeout=DISCOVERY_TIMEOUT,
                    discover_all=False):
@@ -92,8 +91,6 @@ async def discover(ip=DISCOVERY_ADDRESS,
             ip = ip or DISCOVERY_ADDRESS
             address = (ip, DISCOVERY_PORT)
             await sock_sendto(sock, DISCOVERY_PAYLOAD, address)
-
-            # sock.settimeout(timeout.seconds)
 
             while True:
                 try:
