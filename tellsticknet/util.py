@@ -3,6 +3,12 @@ import logging
 
 _LOGGER = logging.getLogger(__name__)
 
+# FIXME: subclass DatagramAbstractProtocol instead?
+# https://github.com/python/asyncio/pull/321#issuecomment-187022000
+# https://docs.python.org/3/library/asyncio-protocol.html#asyncio.DatagramTransport
+# https://docs.python.org/3/library/asyncio-protocol.html#datagram-transports
+# https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.create_datagram_endpoint
+
 
 async def sock_sendto(sock, data, address):
     """async UDP helper"""
