@@ -10,7 +10,7 @@ def decode(packet):
 
     data2 = 0
     mask = 1 << 11
-    for i in range(0, 12):
+    for _ in range(0, 12):
         data2 >>= 1
         if data & mask == 0:
             data2 |= 1 << 11
@@ -39,7 +39,7 @@ def decode(packet):
 
     mask = 1 << 9
     code2 = ""
-    for i in range(0, 10):
+    for _ in range(0, 10):
         if code & mask != 0:
             code2 += "1"
         else:
