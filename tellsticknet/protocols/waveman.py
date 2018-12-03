@@ -1,4 +1,5 @@
 import logging
+
 _LOGGER = logging.getLogger(__name__)
 
 # https://github.com/telldus/telldus/blob/master/telldus-core/service/ProtocolWaveman.cpp
@@ -7,7 +8,7 @@ lastArctecCodeSwitchWasTurnOff = False
 
 
 def decode(packet):
-    data = packet['data']
+    data = packet["data"]
 
     method = data & 0xF00
     method >>= 8
@@ -23,7 +24,7 @@ def decode(packet):
         _LOGGER.debug("Not Waveman")
         return
 
-    house = chr(house + ord('A'))  # house from A to P
+    house = chr(house + ord("A"))  # house from A to P
 
     global lastArctecCodeSwitchWasTurnOff
 
@@ -38,18 +39,18 @@ def decode(packet):
     if method == 6:
         lastArctecCodeSwitchWasTurnOff = True
 
-    ret = dict(packet,
-               _class="command",
-               protocol="waveman",
-               model="codeswitch",
-               house=house)
+    ret = dict(
+        packet,
+        _class="command",
+        protocol="waveman",
+        model="codeswitch",
+        house=house,
+    )
 
     if method == 0:
-        ret.update(unit=unit,
-                   method="turnoff")
+        ret.update(unit=unit, method="turnoff")
     elif method == 14:
-        ret.update(unit=unit,
-                   method="turnon")
+        ret.update(unit=unit, method="turnon")
     else:
         _LOGGER.debug("Not Waveman")
         return

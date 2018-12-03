@@ -1,4 +1,5 @@
 import logging
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -6,16 +7,16 @@ def decode(packet):
     """
     https://github.com/telldus/telldus/blob/master/telldus-core/service/ProtocolEverflourish.cpp
     """
-    data = packet['data']
+    data = packet["data"]
 
-    house = data & 0xfffc00
+    house = data & 0xFFFC00
     house >>= 10
 
     unit = data & 0x300
     unit >>= 8
     unit += 1
 
-    method = data & 0xf
+    method = data & 0xF
 
     # _LOGGER.debug("Everflourish (data=%x, house=%d, "
     # "unit=%d, method=%d)",
@@ -35,12 +36,14 @@ def decode(packet):
         # not everflourish
         return
 
-    return dict(packet,
-                _class="command",
-                model="selflearning",
-                house=house,
-                unit=unit,
-                method=method)
+    return dict(
+        packet,
+        _class="command",
+        model="selflearning",
+        house=house,
+        unit=unit,
+        method=method,
+    )
 
 
 def encode(method):

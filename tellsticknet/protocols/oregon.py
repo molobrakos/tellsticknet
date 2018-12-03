@@ -9,8 +9,9 @@ def decode(packet):
     """
 
     if packet["model"] != 6701:
-        raise NotImplementedError("The Oregon model %i is not implemented."
-                                  % packet["model"])
+        raise NotImplementedError(
+            "The Oregon model %i is not implemented." % packet["model"]
+        )
 
     data = packet["data"]
     value = int(data)
@@ -44,16 +45,19 @@ def decode(packet):
     checksum += 0x1 + 0xA + 0x2 + 0xD - 0xA
 
     if checksum != checksum1:
-        raise ValueError("The checksum in the Oregon packet does not match "
-                         "the caluclated one!")
+        raise ValueError(
+            "The checksum in the Oregon packet does not match "
+            "the caluclated one!"
+        )
 
-    temperature = ((temp1 * 100) + (temp2 * 10) + temp3)/10.0
+    temperature = ((temp1 * 100) + (temp2 * 10) + temp3) / 10.0
     if neg:
         temperature = -temperature
 
     humidity = (hum1 * 10.0) + hum2
 
-    return dict(packet,
-                sensorId=address,
-                data=dict(temp=temperature,
-                          humidity=humidity))
+    return dict(
+        packet,
+        sensorId=address,
+        data=dict(temp=temperature, humidity=humidity),
+    )

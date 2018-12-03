@@ -30,21 +30,22 @@ async def discover(ip=None, discover_all=False):
         return Controller(*discovery_data[:2])
 
     discoverer = discovery.discover(
-        ip=ip, discover_all=discover_all)  # pylint: disable=not-an-iterable
+        ip=ip, discover_all=discover_all
+    )  # pylint: disable=not-an-iterable
     if discover_all:
         return (
             make_controller(discovery_data)
-            async for discovery_data
-            in discoverer)  # pylint: disable=not-an-iterable
+            async for discovery_data in discoverer
+        )  # pylint: disable=not-an-iterable
     try:
         return make_controller(
-            await discoverer.__anext__())  # pylint: disable=no-member
+            await discoverer.__anext__()
+        )  # pylint: disable=no-member
     except StopAsyncIteration:
         return None
 
 
 class Controller:
-
     def __init__(self, ip, mac):
         self._address = (ip, COMMAND_PORT)
         self._mac = mac
@@ -61,7 +62,7 @@ class Controller:
         return self._mac.lower()
 
     def __repr__(self):
-        return f'Controller@{self.ip_address} ({self.mac_address})'
+        return f"Controller@{self.ip_address} ({self.mac_address})"
 
     async def _send(self, sock, command, **args):
         """Send a command to the controller
@@ -69,11 +70,12 @@ class Controller:
         https://github.com/telldus/tellstick-net/blob/master/
             firmware/tellsticknet.c"""
         packet = encode_packet(command, **args)
-        _LOGGER.debug("Sending packet to controller %s <%s>",
-                      self._address, packet)
+        _LOGGER.debug(
+            "Sending packet to controller %s <%s>", self._address, packet
+        )
         res = await sock_sendto(sock, packet, self._address)
-        if (res != len(packet)):
-            raise OSError('Could not send all of packet')
+        if res != len(packet):
+            raise OSError("Could not send all of packet")
 
     async def packets(self):
         """Listen forever for network events, yield stream of packets"""
@@ -84,16 +86,17 @@ class Controller:
                     await self._send(sock, "reglistener")
                     _LOGGER.info(
                         "Registered self as listener for device at %s",
-                        self._address)
+                        self._address,
+                    )
                 except OSError:  # e.g. Network is unreachable
                     # just retry
-                    _LOGGER.warning('Could not send registration packet')
+                    _LOGGER.warning("Could not send registration packet")
                     pass
                 await asyncio.sleep(REGISTRATION_INTERVAL.seconds)
 
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            sock.bind(('', COMMAND_PORT))
+            sock.bind(("", COMMAND_PORT))
             sock.setblocking(0)
             loop = asyncio.get_event_loop()
             loop.create_task(registrator_task(sock))
@@ -104,10 +107,13 @@ class Controller:
                     if address == self._address:
                         yield response.decode("ascii")
                     else:
-                        _LOGGER.warning('Got unknown response from %s: %s',
-                                        address, response)
+                        _LOGGER.warning(
+                            "Got unknown response from %s: %s",
+                            address,
+                            response,
+                        )
                 except OSError as e:
-                    _LOGGER.warning('Could not receive from socket: %s', e)
+                    _LOGGER.warning("Could not receive from socket: %s", e)
 
     async def events(self):
         async for packet in self.packets():  # pylint: disable=not-an-iterable
@@ -119,8 +125,9 @@ class Controller:
             try:
                 packet = decode_packet(packet)
             except NotImplementedError:
-                _LOGGER.warning("failed to decode packet, skipping: %s",
-                                packet)
+                _LOGGER.warning(
+                    "failed to decode packet, skipping: %s", packet
+                )
                 continue
 
             packet.update(lastUpdated=int(time()))
@@ -143,23 +150,19 @@ class Controller:
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             sock.setblocking(0)
             try:
-                await self._send(sock, 'send', **packet)
+                await self._send(sock, "send", **packet)
             except OSError as e:
-                _LOGGER.warning('Could not send to socket: %s', e)
+                _LOGGER.warning("Could not send to socket: %s", e)
 
-    def execute(self,
-                device,
-                method,
-                param=None,
-                repeat=COMMAND_REPEAT_TIMES):
-
+    def execute(self, device, method, param=None, repeat=COMMAND_REPEAT_TIMES):
         async def task():
             for i in range(0, repeat):
-                _LOGGER.debug('Sending time %d of %d', i+1, repeat)
+                _LOGGER.debug("Sending time %d of %d", i + 1, repeat)
                 await self._execute(device, method, param)
                 if i < repeat - 1:
-                    _LOGGER.debug('Waiting %d seconds',
-                                  COMMAND_REPEAT_DELAY.seconds)
+                    _LOGGER.debug(
+                        "Waiting %d seconds", COMMAND_REPEAT_DELAY.seconds
+                    )
                 await asyncio.sleep(COMMAND_REPEAT_DELAY.seconds if i else 0)
 
         loop = asyncio.get_event_loop()

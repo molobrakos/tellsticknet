@@ -12,18 +12,18 @@ RGBW = 1024
 THERMOSTAT = 2048
 
 # Sensor types
-TEMPERATURE = 'temp'
-HUMIDITY = 'humidity'
-RAINRATE = 'rrate'
-RAINTOTAL = 'rtot'
-WINDDIRECTION = 'wdir'
-WINDAVERAGE = 'wavg'
-WINDGUST = 'wgust'
-UV = 'uv'
-POWER = 'watt'
-LUMINANCE = 'lum'
-DEW_POINT = 'dewp'
-BAROMETRIC_PRESSURE = 'barpress'
+TEMPERATURE = "temp"
+HUMIDITY = "humidity"
+RAINRATE = "rrate"
+RAINTOTAL = "rtot"
+WINDDIRECTION = "wdir"
+WINDAVERAGE = "wavg"
+WINDGUST = "wgust"
+UV = "uv"
+POWER = "watt"
+LUMINANCE = "lum"
+DEW_POINT = "dewp"
+BAROMETRIC_PRESSURE = "barpress"
 
 # Battery status
 BATTERY_LOW = 255

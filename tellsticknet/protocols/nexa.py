@@ -1,4 +1,5 @@
 import logging
+
 _LOGGER = logging.getLogger(__name__)
 
 # https://github.com/telldus/telldus/blob/master/telldus-core/service/ProtocolNexa.cpp
@@ -6,7 +7,7 @@ _LOGGER = logging.getLogger(__name__)
 
 def decode_selflearning(packet):
 
-    data = packet['data']
+    data = packet["data"]
 
     house = data & 0xFFFFFFC0
     house >>= 6
@@ -30,12 +31,14 @@ def decode_selflearning(packet):
     else:
         raise RuntimeError("invalid method", method)
 
-    return dict(packet,
-                _class="command",
-                house=house,
-                unit=unit,
-                group=group,
-                method=method)
+    return dict(
+        packet,
+        _class="command",
+        house=house,
+        unit=unit,
+        group=group,
+        method=method,
+    )
 
 
 lastArctecCodeSwitchWasTurnOff = False
@@ -43,7 +46,7 @@ lastArctecCodeSwitchWasTurnOff = False
 
 def decode_codeswitch(packet):
 
-    data = packet['data']
+    data = packet["data"]
 
     method = data & 0xF00
     method >>= 8
@@ -58,7 +61,7 @@ def decode_codeswitch(packet):
         _LOGGER.debug("Not Arctech")
         return
 
-    house = chr(house + ord('A'))  # house from A to P
+    house = chr(house + ord("A"))  # house from A to P
 
     global lastArctecCodeSwitchWasTurnOff
 
@@ -69,18 +72,18 @@ def decode_codeswitch(packet):
     if method == 6:
         lastArctecCodeSwitchWasTurnOff = True
 
-    ret = dict(packet,
-               _class="command",
-               protocol="arctech",
-               model="codeswitch",
-               house=house)
+    ret = dict(
+        packet,
+        _class="command",
+        protocol="arctech",
+        model="codeswitch",
+        house=house,
+    )
 
     if method == 6:
-        ret.update(unit=unit,
-                   method="turnoff")
+        ret.update(unit=unit, method="turnoff")
     elif method == 14:
-        ret.update(unit=unit,
-                   method="turnon")
+        ret.update(unit=unit, method="turnon")
     elif method == 15:
         ret.update(method="bell")
     else:

@@ -17,20 +17,20 @@ async def sock_sendto(sock, data, address):
     blocking.set()
 
     def blocking_cb():
-        _LOGGER.debug('Can send now')
+        _LOGGER.debug("Can send now")
         loop.remove_writer(sock)
         blocking.set()
 
     while True:
-        _LOGGER.debug('Sending to sock %s %s:%d', sock, *address)
+        _LOGGER.debug("Sending to sock %s %s:%d", sock, *address)
         await blocking.wait()
         try:
             _LOGGER.debug("Sending packet to %s:%d", *address)
             res = sock.sendto(data, address)
-            _LOGGER.debug('Wrote data to sock %s: %s', sock, data)
+            _LOGGER.debug("Wrote data to sock %s: %s", sock, data)
             return res
         except BlockingIOError:
-            _LOGGER.debug('Can not send data yet')
+            _LOGGER.debug("Can not send data yet")
             blocking.clear()
             loop.add_writer(sock, blocking_cb)
 
@@ -42,7 +42,7 @@ async def sock_recvfrom(sock, size):
     blocking.set()
 
     def blocking_cb():
-        _LOGGER.debug('Data available on socket')
+        _LOGGER.debug("Data available on socket")
         loop.remove_reader(sock)
         blocking.set()
 
@@ -51,9 +51,9 @@ async def sock_recvfrom(sock, size):
         try:
             _LOGGER.debug("Reading from %s", sock)
             res = sock.recvfrom(size)
-            _LOGGER.debug('Got data from sock %s: %s', sock, res)
+            _LOGGER.debug("Got data from sock %s: %s", sock, res)
             return res
         except BlockingIOError:
-            _LOGGER.debug('No data available on socket yet')
+            _LOGGER.debug("No data available on socket yet")
             blocking.clear()
             loop.add_reader(sock, blocking_cb)

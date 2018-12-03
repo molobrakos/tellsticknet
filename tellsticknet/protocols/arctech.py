@@ -2,6 +2,7 @@ from . import nexa, waveman, sartano
 from .. import const
 from collections import OrderedDict
 import logging
+
 _LOGGER = logging.getLogger(__name__)
 
 # https://github.com/telldus/telldus/blob/master/telldus-core/service/Protocol.cpp
@@ -13,9 +14,9 @@ def decode(packet):
     We must copy packet since "data" key will be popped by
     protocol implementations
     """
-    return nexa.decode(packet) or \
-        waveman.decode(packet) or \
-        sartano.decode(packet)
+    return (
+        nexa.decode(packet) or waveman.decode(packet) or sartano.decode(packet)
+    )
 
 
 def encode(model, house, unit, method, param, **kwargs):
@@ -23,7 +24,7 @@ def encode(model, house, unit, method, param, **kwargs):
     https://github.com/telldus/tellstick-server/blob/master/rf433/src/rf433/ProtocolArctech.py
     """
 
-    if method == const.TURNON and model == 'selflearning-dimmer':
+    if method == const.TURNON and model == "selflearning-dimmer":
         method, param = const.DIM, 255
     elif method == const.DIM and int(param) == 0:
         method = const.TURNOFF
@@ -35,11 +36,12 @@ def encode(model, house, unit, method, param, **kwargs):
         # https://github.com/telldus/tellstick-net/blob/master/firmware/tellsticknet.c#L85
         # https://github.com/telldus/tellstick-net/blob/master/firmware/transmit_arctech.c
         return OrderedDict(
-            protocol='arctech',
-            model='selflearning',
+            protocol="arctech",
+            model="selflearning",
             house=house,
             unit=unit,
-            method=method)
+            method=method,
+        )
 
     SHORT = bytes([24])
     LONG = bytes([127])
@@ -66,7 +68,7 @@ def encode(model, house, unit, method, param, **kwargs):
     elif method == const.LEARN:
         code = code + ONE
     else:
-        _LOGGER.warning('Unknown method')
+        _LOGGER.warning("Unknown method")
 
     for i in range(3, -1, -1):
         if unit & (1 << i):

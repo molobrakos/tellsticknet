@@ -7,12 +7,10 @@ import asyncio
 from .util import sock_sendto, sock_recvfrom
 
 DISCOVERY_PORT = 30303
-DISCOVERY_ADDRESS = '<broadcast>'
+DISCOVERY_ADDRESS = "<broadcast>"
 DISCOVERY_PAYLOAD = b"D"
 DISCOVERY_TIMEOUT = timedelta(seconds=5)
-SUPPORTED_PRODUCTS = ['TellStickNet',
-                      'TellstickNetV2',
-                      'TellstickZnet']
+SUPPORTED_PRODUCTS = ["TellStickNet", "TellstickNetV2", "TellstickZnet"]
 
 MIN_TELLSTICKNET_FIRMWARE_VERSION = 17
 
@@ -66,21 +64,22 @@ def parse_discovery_packet(data):
 
     (product, mac, code, firmware, *uid) = entry
 
-    if not any(device in product
-               for device in SUPPORTED_PRODUCTS):
+    if not any(device in product for device in SUPPORTED_PRODUCTS):
         _LOGGER.info("Unsupported product %s", product)
         raise ValueError
-    elif (product == 'TellStickNet' and
-          int(firmware) < MIN_TELLSTICKNET_FIRMWARE_VERSION):
+    elif (
+        product == "TellStickNet"
+        and int(firmware) < MIN_TELLSTICKNET_FIRMWARE_VERSION
+    ):
         _LOGGER.info("Unsupported firmware version: %s", firmware)
         raise ValueError
     else:
         return mac, product, firmware
 
 
-async def discover(ip=DISCOVERY_ADDRESS,
-                   timeout=DISCOVERY_TIMEOUT,
-                   discover_all=False):
+async def discover(
+    ip=DISCOVERY_ADDRESS, timeout=DISCOVERY_TIMEOUT, discover_all=False
+):
     """Scan network for Tellstick Net devices"""
     _LOGGER.info("Discovering tellstick devices ...")
     try:
@@ -95,19 +94,21 @@ async def discover(ip=DISCOVERY_ADDRESS,
             while True:
                 try:
                     data, (address, port) = await asyncio.wait_for(
-                        sock_recvfrom(sock, 1024),
-                        timeout.seconds)
-                    _LOGGER.debug('Got %s from %s:%d', data, address, port)
+                        sock_recvfrom(sock, 1024), timeout.seconds
+                    )
+                    _LOGGER.debug("Got %s from %s:%d", data, address, port)
                     mac, product, firmware = parse_discovery_packet(data)
-                    _LOGGER.info("Found %s device with firmware %s at %s",
-                                 product,
-                                 firmware,
-                                 address)
+                    _LOGGER.info(
+                        "Found %s device with firmware %s at %s",
+                        product,
+                        firmware,
+                        address,
+                    )
                     yield (address, mac)
                     if not discover_all:
                         return
                 except asyncio.TimeoutError:
-                    _LOGGER.debug('Discovery timeout')
+                    _LOGGER.debug("Discovery timeout")
                     break
                 except ValueError:
                     continue
@@ -126,15 +127,15 @@ def mock():
             if data == DISCOVERY_PAYLOAD:
                 _LOGGER.info("Got discovery request, replying")
                 response = "%s:MAC:CODE:%d" % (
-                    'TellstickNet',
-                    MIN_TELLSTICKNET_FIRMWARE_VERSION)
-                sock_sendto(sock,
-                            response.encode("ascii"),
-                            address)
+                    "TellstickNet",
+                    MIN_TELLSTICKNET_FIRMWARE_VERSION,
+                )
+                sock_sendto(sock, response.encode("ascii"), address)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from sys import argv
+
     if argv[-1] == "mock":
         mock()
     elif len(argv) == 2 and argv[1] is not None:

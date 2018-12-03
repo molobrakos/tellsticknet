@@ -1,18 +1,19 @@
 import logging
+
 _LOGGER = logging.getLogger(__name__)
 
 # https://github.com/telldus/telldus/blob/master/telldus-core/service/ProtocolSartano.cpp
 
 
 def decode(packet):
-    data = packet['data']
+    data = packet["data"]
 
     data2 = 0
     mask = 1 << 11
     for i in range(0, 12):
         data2 >>= 1
         if data & mask == 0:
-            data2 |= (1 << 11)
+            data2 |= 1 << 11
         mask >>= 1
 
     data = data2
@@ -46,11 +47,13 @@ def decode(packet):
         mask >>= 1
     code = code2
 
-    ret = dict(packet,
-               _class="command",
-               protocol="sartano",
-               model="codeswitch",
-               code=code)
+    ret = dict(
+        packet,
+        _class="command",
+        protocol="sartano",
+        model="codeswitch",
+        code=code,
+    )
 
     if method == 0:
         ret.update(method="turnoff")

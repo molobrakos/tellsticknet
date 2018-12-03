@@ -4,14 +4,15 @@ https://developer.telldus.com/doxygen/html/TellStickNet.html
 """
 
 import logging
+
 _LOGGER = logging.getLogger(__name__)
 
 
-TAG_INTEGER = ord('i')
-TAG_DICT = ord('h')
-TAG_LIST = ord('l')
-TAG_END = ord('s')
-TAG_SEP = ord(':')
+TAG_INTEGER = ord("i")
+TAG_DICT = ord("h")
+TAG_LIST = ord("l")
+TAG_END = ord("s")
+TAG_SEP = ord(":")
 
 
 def _expect(condition):
@@ -106,10 +107,9 @@ def _encode_dict(d):
 
     return b"%c%s%c" % (
         TAG_DICT,
-        b"".join(_encode_any(x)
-                 for keyval in d.items()
-                 for x in keyval),
-        TAG_END)
+        b"".join(_encode_any(x) for keyval in d.items() for x in keyval),
+        TAG_END,
+    )
 
 
 def _encode_list(l):
@@ -211,7 +211,7 @@ def _decode_integer(packet):
     # but invalid according to specification
     # _expect(val[0] != "0" or len(val) == 1)
     _expect(val[0] != "-" or val[1] != "0")
-    return int(val, 16), packet[end + 1:]
+    return int(val, 16), packet[end + 1 :]
 
 
 def _decode_dict(packet):
@@ -273,8 +273,11 @@ def _fixup(d):
     >>> _fixup(dict(a=1, _b=2)) == {'a': 1, 'b': 2}
     True
     """
-    return {(k[1:] if k.startswith('_') else k): v
-            for k, v in d.items()} if d else None
+    return (
+        {(k[1:] if k.startswith("_") else k): v for k, v in d.items()}
+        if d
+        else None
+    )
 
 
 def _decode(**packet):
@@ -286,6 +289,7 @@ def _decode(**packet):
     try:
         modname = "tellsticknet.protocols.%s" % protocol
         import importlib
+
         module = importlib.import_module(modname)
         func = getattr(module, "decode")
 
@@ -293,31 +297,36 @@ def _decode(**packet):
         packet = _fixup(func(packet.copy()))
 
         if packet:
-            data = packet.pop('data')
+            data = packet.pop("data")
             if isinstance(data, dict):
                 # convert data={temp=42, humidity=38} to
                 # data=[{name=temp, value=42},{name=humidity, valye=38}]
-                packet['data'] = [
-                    dict(name=name,
-                         value=value)
-                    for name, value
-                    in data.items()]
+                packet["data"] = [
+                    dict(name=name, value=value)
+                    for name, value in data.items()
+                ]
             return packet
         raise NotImplementedError
     except ImportError:
-        SRC_URL = ("https://github.com/telldus/telldus/"
-                   "tree/master/telldus-core/service")
-        _LOGGER.exception("Can not decode protocol %s, packet <%s> "
-                          "Missing or broken _decode in %s "
-                          "Check %s for protocol implementation",
-                          protocol, packet["data"],
-                          modname, SRC_URL)
+        SRC_URL = (
+            "https://github.com/telldus/telldus/"
+            "tree/master/telldus-core/service"
+        )
+        _LOGGER.exception(
+            "Can not decode protocol %s, packet <%s> "
+            "Missing or broken _decode in %s "
+            "Check %s for protocol implementation",
+            protocol,
+            packet["data"],
+            modname,
+            SRC_URL,
+        )
         raise
 
 
 def encode(**device):
-    protocol = device.pop('protocol')
-    _LOGGER.debug('Encoding for protocol %s', protocol)
+    protocol = device.pop("protocol")
+    _LOGGER.debug("Encoding for protocol %s", protocol)
     protocol = get_protocol(protocol)
     return protocol.encode(**device)
 
@@ -362,10 +371,10 @@ A:fineoffset4:datai488029FF9Ass"
 
     command, args = _decode_command(packet)
 
-    if command == 'zwaveinfo':
-        _LOGGER.info('Got Z-Wave info packet')
-        _LOGGER.debug('%s %s', command, args)
-    elif command == 'RawData':
+    if command == "zwaveinfo":
+        _LOGGER.info("Got Z-Wave info packet")
+        _LOGGER.debug("%s %s", command, args)
+    elif command == "RawData":
         return _decode(**args)
     else:
         raise NotImplementedError("Unknown command type")
@@ -375,11 +384,16 @@ def get_protocol(protocol):
     try:
         modname = "tellsticknet.protocols.%s" % protocol
         import importlib
+
         module = importlib.import_module(modname)
         return module
     except ImportError:
-        SRC_URL = ('https://github.com/telldus/telldus/'
-                   'tree/master/telldus-core/service')
-        _LOGGER.exception(f'Can not decode protocol {protocol}'
-                          f'Check {SRC_URL} for protocol implementation')
+        SRC_URL = (
+            "https://github.com/telldus/telldus/"
+            "tree/master/telldus-core/service"
+        )
+        _LOGGER.exception(
+            f"Can not decode protocol {protocol}"
+            f"Check {SRC_URL} for protocol implementation"
+        )
         raise

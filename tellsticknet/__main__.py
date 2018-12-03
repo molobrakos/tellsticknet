@@ -47,7 +47,7 @@ DATEFMT = "%y-%m-%d %H:%M.%S"
 LOG_LEVEL = logging.DEBUG
 _LOGGER = logging.getLogger(__name__)
 
-_ = version_info >= (3, 7) or exit('Python 3.7 required')
+_ = version_info >= (3, 7) or exit("Python 3.7 required")
 
 
 def parse_isoformat(s):
@@ -70,7 +70,7 @@ def parse_stdin():
         line = line.strip()
         if " " in line:
             # assume we have date + raw data separated by space
-            timestamp, line = line.split(' ', 1)
+            timestamp, line = line.split(" ", 1)
             timestamp = parse_isoformat(timestamp)
             lastUpdated = int(timestamp.timestamp())
             packet = decode_packet(line)
@@ -92,11 +92,11 @@ async def print_event_stream(controller, raw=False):
     """Print event stream"""
 
     if raw:
-        stream = (prepend_timestamp(packet)
-                  async for packet in controller.packets())
+        stream = (
+            prepend_timestamp(packet) async for packet in controller.packets()
+        )
     else:
-        stream = (to_json(event)
-                  async for event in controller.events())
+        stream = (to_json(event) async for event in controller.events())
 
     async for packet in stream:
         print(packet)
@@ -109,22 +109,18 @@ async def print_event_stream(controller, raw=False):
 
 CONFIG_DIRECTORIES = [
     dirname(argv[0]),
-    expanduser('~'),
-    env.get('XDG_CONFIG_HOME',
-            join(expanduser('~'), '.config'))]
+    expanduser("~"),
+    env.get("XDG_CONFIG_HOME", join(expanduser("~"), ".config")),
+]
 
-CONFIG_FILES = [
-    'tellsticknet.conf',
-    '.tellsticknet.conf']
+CONFIG_FILES = ["tellsticknet.conf", ".tellsticknet.conf"]
 
 
 def read_config():
-    for directory, filename in (
-            product(CONFIG_DIRECTORIES,
-                    CONFIG_FILES)):
+    for directory, filename in product(CONFIG_DIRECTORIES, CONFIG_FILES):
         try:
             config = join(directory, filename)
-            _LOGGER.debug('checking for config file %s', config)
+            _LOGGER.debug("checking for config file %s", config)
             with open(config) as config:
                 return list(load_yaml(config))
         except (IOError, OSError):
@@ -140,31 +136,32 @@ async def main(args):
         interval = 5
         now = loop.time()
         if then:
-            _LOGGER.debug('Poller %f Took %f', interval, now - then)
+            _LOGGER.debug("Poller %f Took %f", interval, now - then)
         loop.call_later(interval, poller, now)
 
     if loop.get_debug():
         poller()
 
-    if args['parse'] and not stdin.isatty():
+    if args["parse"] and not stdin.isatty():
         parse_stdin()
         exit()
-    elif args['mock']:
+    elif args["mock"]:
         from tellsticknet.discovery import mock
+
         mock()
         exit()
-    elif args['devices']:
-        for e in (e for e in read_config() if 'sensorId' not in e):
-            print('-', e['name'])
+    elif args["devices"]:
+        for e in (e for e in read_config() if "sensorId" not in e):
+            print("-", e["name"])
         exit()
-    elif args['sensors']:
-        for e in (e for e in read_config() if 'sensorId' in e):
-            print('-', e['name'])
+    elif args["sensors"]:
+        for e in (e for e in read_config() if "sensorId" in e):
+            print("-", e["name"])
         exit()
 
-    ip = args['--ip']
+    ip = args["--ip"]
 
-    if args['discover']:
+    if args["discover"]:
         async for c in await discover(ip=ip, discover_all=True):
             print(c)
         exit()
@@ -172,21 +169,23 @@ async def main(args):
     config = read_config()
 
     from functools import partial
-    if args['mqtt']:
+
+    if args["mqtt"]:
         from tellsticknet.mqtt import run
+
         await run(partial(discover, ip=ip), config)
         exit()
 
     controller = await discover(ip=ip)
     if not controller:
-        exit('No tellstick device found')
+        exit("No tellstick device found")
 
-    _LOGGER.info('Found controller: %s', controller)
+    _LOGGER.info("Found controller: %s", controller)
 
-    if args['listen']:
-        await print_event_stream(controller, raw=args['--raw'])
-    elif args['send']:
-        cmd = args['<cmd>']
+    if args["listen"]:
+        await print_event_stream(controller, raw=args["--raw"])
+    elif args["send"]:
+        cmd = args["<cmd>"]
         METHODS = dict(
             on=const.TURNON,
             turnon=const.TURNON,
@@ -195,68 +194,70 @@ async def main(args):
             up=const.UP,
             down=const.DOWN,
             stop=const.STOP,
-            dim=const.DIM)
-        method = METHODS.get(cmd.lower()) or exit('method not found')
+            dim=const.DIM,
+        )
+        method = METHODS.get(cmd.lower()) or exit("method not found")
 
-        param = args['<param>']
+        param = args["<param>"]
 
         if method == const.DIM and not param:
-            exit('dim level missing')
+            exit("dim level missing")
 
-        name = args['<name>']
-        protocol = args['<protocol>']
-        model = args['<model>']
-        house = args['<house>']
-        unit = args['<unit>']
+        name = args["<name>"]
+        protocol = args["<protocol>"]
+        model = args["<model>"]
+        house = args["<house>"]
+        unit = args["<unit>"]
 
         if name:
-            devices = [e for e in config
-                       if e['name'].lower().startswith(
-                               name.lower())]
+            devices = [
+                e for e in config if e["name"].lower().startswith(name.lower())
+            ]
             if not devices:
-                exit(f'Device with name {name} not found')
+                exit(f"Device with name {name} not found")
         elif protocol and model and house and unit:
-            exit('Not implemented')
+            exit("Not implemented")
 
         if not devices:
-            exit('No devices found')
+            exit("No devices found")
 
         _LOGGER.info("Executing for %d devices", len(devices))
 
-        _LOGGER.debug('Waiting for tasks to finish')
-        await asyncio.gather(*[
-            controller.execute(device, method, param=param)
-            for device in devices])
+        _LOGGER.debug("Waiting for tasks to finish")
+        await asyncio.gather(
+            *[
+                controller.execute(device, method, param=param)
+                for device in devices
+            ]
+        )
 
 
 if __name__ == "__main__":
-    args = docopt.docopt(__doc__,
-                         version=__version__)
+    args = docopt.docopt(__doc__, version=__version__)
 
-    debug = args['-d']
+    debug = args["-d"]
 
     if debug:
         log_level = logging.DEBUG
     else:
-        log_level = [logging.ERROR, logging.INFO, logging.DEBUG][args['-v']]
+        log_level = [logging.ERROR, logging.INFO, logging.DEBUG][args["-v"]]
 
     try:
         import coloredlogs
-        coloredlogs.install(level=log_level,
-                            stream=stderr,
-                            datefmt=DATEFMT,
-                            fmt=LOGFMT)
+
+        coloredlogs.install(
+            level=log_level, stream=stderr, datefmt=DATEFMT, fmt=LOGFMT
+        )
     except ImportError:
         _LOGGER.debug("no colored logs. pip install coloredlogs?")
-        logging.basicConfig(level=log_level,
-                            stream=stderr,
-                            datefmt=DATEFMT,
-                            format=LOGFMT)
+        logging.basicConfig(
+            level=log_level, stream=stderr, datefmt=DATEFMT, format=LOGFMT
+        )
 
     logging.captureWarnings(debug)
 
     if debug:
-        _LOGGER.info('Debug is on')
+        _LOGGER.info("Debug is on")
 
     try:
         asyncio.run(main(args), debug=debug)  # pylint: disable=no-member
