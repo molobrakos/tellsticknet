@@ -211,7 +211,7 @@ def _decode_integer(packet):
     # but invalid according to specification
     # _expect(val[0] != "0" or len(val) == 1)
     _expect(val[0] != "-" or val[1] != "0")
-    return int(val, 16), packet[end + 1 :]
+    return int(val, 16), packet[(end + 1) :]
 
 
 def _decode_dict(packet):
