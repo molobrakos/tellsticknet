@@ -96,19 +96,33 @@ def method_for_str(s):
 
 
 def read_credentials():
-    """Read credentials from ~/.config/mosquitto_pub."""
-    with open(
-        join(
-            env.get("XDG_CONFIG_HOME", join(expanduser("~"), ".config")),
-            "mosquitto_pub",
-        )
-    ) as f:
-        d = dict(
-            line.replace("-", "").split() for line in f.read().splitlines()
-        )
-        return dict(
-            host=d["h"], port=d["p"], username=d["username"], password=d["pw"]
-        )
+    """Read credentials from $MQTT_URL or ~/.config/mosquitto_pub.
+
+    MQTT_URL examples:
+        mqtt://localhost
+        mqtts://username:password@host:port
+
+    """
+    mqtt_url = env.get("MQTT_URL")
+    if mqtt_url:
+        credentials = dict(url=mqtt_url)
+    else:
+        with open(
+            join(
+                env.get("XDG_CONFIG_HOME", join(expanduser("~"), ".config")),
+                "mosquitto_pub",
+            )
+        ) as f:
+            d = dict(
+                line.replace("-", "").split() for line in f.read().splitlines()
+            )
+            credentials = dict(
+                host=d["h"],
+                port=d["p"],
+                username=d["username"],
+                password=d["pw"],
+            )
+    return credentials
 
 
 def whitelisted(
