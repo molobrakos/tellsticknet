@@ -231,8 +231,7 @@ async def main(args):
             ]
         )
 
-
-if __name__ == "__main__":
+def app_main():
     args = docopt.docopt(__doc__, version=__version__)
 
     debug = args["-d"]
@@ -263,3 +262,6 @@ if __name__ == "__main__":
         asyncio.run(main(args), debug=debug)  # pylint: disable=no-member
     except KeyboardInterrupt:
         exit()
+
+if __name__ == "__main__":
+    app_main()

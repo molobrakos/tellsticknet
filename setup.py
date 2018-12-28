@@ -12,11 +12,16 @@ setup(name='tellsticknet',
       author='Erik Eriksson',
       author_email='error.errorsson@gmail.com',
       keywords='tellstick',
-      packages=['tellsticknet'],
+      packages=setuptools.find_packages(),
       long_description=(open('README.md').read()
                         if exists('README.md') else ''),
       install_requires=list(
           open('requirements.txt').read().strip().split('\n')),
       scripts=[],
       extras_require={},
+      entry_points={
+          'console_scripts': [
+              'tellsticknet=tellsticknet.__main__:app_main' ,
+          ],
+      },
       zip_safe=False)
