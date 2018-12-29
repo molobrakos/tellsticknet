@@ -155,6 +155,8 @@ class Controller:
                 _LOGGER.warning("Could not send to socket: %s", e)
 
     def execute(self, device, method, param=None, repeat=COMMAND_REPEAT_TIMES):
+        # FIXME: encode packet once
+        # FIXME: Don't create new socket, reuse
         async def task():
             for i in range(0, repeat):
                 _LOGGER.debug("Sending time %d of %d", i + 1, repeat)
