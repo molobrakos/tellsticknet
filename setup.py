@@ -6,7 +6,7 @@ from os.path import exists
 
 setup(
     name="tellsticknet",
-    version="0.1.1",
+    version="0.1.2",
     description="Listen for UDP sensor broadcasts from a Tellstick",
     url="https://github.com/molobrakos/tellsticknet",
     license="?",
