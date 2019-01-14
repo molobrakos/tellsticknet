@@ -2,6 +2,13 @@ IMAGE=molobrakos/tellsticknet
 
 default: check
 
+format: white
+
+white: black
+
+black:
+	white . tellsticknet
+
 lint:
 	tox -e lint
 
@@ -9,6 +16,14 @@ test:
 	tox
 
 check: lint test
+
+pypi:
+	rm -f dist/*.tar.gz
+	python3 setup.py sdist
+	twine upload dist/*.tar.gz
+
+release:
+	git diff-index --quiet HEAD -- && make check && bumpversion patch && git push --tags && git push && make pypi
 
 docker-build:
 	docker build -t $(IMAGE) .
