@@ -121,7 +121,7 @@ def get_mqtt_url():
             protocol = "mqtt" if port == 1883 else "mqtts"
             _LOGGER.debug("MQTT credentials loaded from %s", f.name)
             return f"{protocol}://{username}:{password}@{host}:{port}"
-    except Exception as e:
+    except (OSError, KeyError):
         return None
 
 
