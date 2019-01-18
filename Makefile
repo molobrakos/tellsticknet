@@ -7,7 +7,7 @@ format: white
 white: black
 
 black:
-	white . tellsticknet
+	white setup.py tellsticknet
 
 lint:
 	tox -e lint
