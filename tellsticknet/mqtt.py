@@ -106,10 +106,10 @@ def get_mqtt_url():
 
     try:
         with open(
-                join(
-                    env.get("XDG_CONFIG_HOME", join(expanduser("~"), ".config")),
-                    "mosquitto_pub",
-                )
+            join(
+                env.get("XDG_CONFIG_HOME", join(expanduser("~"), ".config")),
+                "mosquitto_pub",
+            )
         ) as f:
             config = dict(
                 line.replace("-", "").split() for line in f.read().splitlines()
