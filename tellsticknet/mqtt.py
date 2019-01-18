@@ -95,20 +95,34 @@ def method_for_str(s):
     return next((k for k, v in STATES.items() if s == v), None)
 
 
-def read_credentials():
-    """Read credentials from ~/.config/mosquitto_pub."""
-    with open(
-        join(
-            env.get("XDG_CONFIG_HOME", join(expanduser("~"), ".config")),
-            "mosquitto_pub",
-        )
-    ) as f:
-        d = dict(
-            line.replace("-", "").split() for line in f.read().splitlines()
-        )
-        return dict(
-            host=d["h"], port=d["p"], username=d["username"], password=d["pw"]
-        )
+def get_mqtt_url():
+    """Reads MQTT configuration from $MQTT_URL or ~/.config/mosquitto_pub."""
+
+    ENV_KEY = "MQTT_URL"
+
+    if ENV_KEY in env:
+        _LOGGER.debug("%s found in env, using it", ENV_KEY)
+        return env[ENV_KEY]
+
+    try:
+        with open(
+                join(
+                    env.get("XDG_CONFIG_HOME", join(expanduser("~"), ".config")),
+                    "mosquitto_pub",
+                )
+        ) as f:
+            config = dict(
+                line.replace("-", "").split() for line in f.read().splitlines()
+            )
+            username = config["username"]
+            password = config["pw"]
+            host = config["h"]
+            port = int(config["p"])
+            protocol = "mqtt" if port == 1883 else "mqtts"
+            _LOGGER.debug("MQTT credentials loaded from %s", f.name)
+            return f"{protocol}://{username}:{password}@{host}:{port}"
+    except Exception as e:
+        return None
 
 
 def whitelisted(
@@ -471,9 +485,6 @@ async def run(discover, config):
         logging.WARNING
     )
 
-    _LOGGER.debug("Reading credentials")
-    credentials = read_credentials()
-
     client_id = "tellsticknet_{hostname}_{time}".format(
         hostname=hostname(), time=time()
     )
@@ -482,25 +493,14 @@ async def run(discover, config):
 
     mqtt = MQTTClient(client_id=client_id)
 
-    url = credentials.get("url")
-
-    if not url:
-        try:
-            username = credentials["username"]
-            password = credentials["password"]
-            host = credentials["host"]
-            port = int(credentials["port"])
-            protocol = "mqtt" if port == 1883 else "mqtts"
-            url = f"{protocol}://{username}:{password}@{host}:{port}"
-        except Exception as e:
-            exit(e)
+    mqtt_url = get_mqtt_url()
 
     devices_setup = asyncio.Event()
 
     async def mqtt_task():
         try:
             _LOGGER.info("Connecting")
-            await mqtt.connect(url, cleansession=False)
+            await mqtt.connect(uri=mqtt_url, cleansession=False)
             _LOGGER.info("Connected to MQTT server")
         except ConnectException as e:
             exit("Could not connect to MQTT server: %s" % e)
