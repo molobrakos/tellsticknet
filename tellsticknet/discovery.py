@@ -127,7 +127,7 @@ async def mock():
             if data == DISCOVERY_PAYLOAD:
                 _LOGGER.info("Got discovery request, replying")
                 response = "%s:MAC:CODE:%d" % (
-                    "TellstickNet",
+                    "TellStickNet",
                     MIN_TELLSTICKNET_FIRMWARE_VERSION,
                 )
                 await sock_sendto(sock, response.encode("ascii"), address)
