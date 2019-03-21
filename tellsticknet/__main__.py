@@ -148,7 +148,7 @@ async def main(args):
     elif args["mock"]:
         from tellsticknet.discovery import mock
 
-        mock()
+        await mock()
         exit()
     elif args["devices"]:
         for e in (e for e in read_config() if "sensorId" not in e):

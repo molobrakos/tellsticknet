@@ -116,7 +116,7 @@ async def discover(
         return
 
 
-def mock():
+async def mock():
     """Mock a Tellstick Net device listening for discovery requests."""
     _LOGGER.info("Mocking a Tellstick device")
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
@@ -130,14 +130,14 @@ def mock():
                     "TellstickNet",
                     MIN_TELLSTICKNET_FIRMWARE_VERSION,
                 )
-                sock_sendto(sock, response.encode("ascii"), address)
+                await sock_sendto(sock, response.encode("ascii"), address)
 
 
 if __name__ == "__main__":
     from sys import argv
 
     if argv[-1] == "mock":
-        mock()
+        asyncio.run(mock())
     elif len(argv) == 2 and argv[1] is not None:
         controllers = list(discover(argv[-1]))
         pprint(controllers)
