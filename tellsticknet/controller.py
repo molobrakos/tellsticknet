@@ -130,6 +130,10 @@ class Controller:
                 )
                 continue
 
+            if not packet:
+                yield None
+                continue
+
             packet.update(lastUpdated=int(time()))
             _LOGGER.debug("Got packet %s", packet)
 
