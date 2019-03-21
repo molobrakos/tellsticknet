@@ -333,6 +333,7 @@ def encode(**device):
 
 def _decode_command(packet):
     command, rest = _decode_any(packet)
+    _expect(len(rest))
     args, rest = _decode_any(rest)
     _expect(len(rest) == 0)
     _expect(isinstance(command, str))
