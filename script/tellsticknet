@@ -1,4 +1,4 @@
 #!/bin/sh
 
 PYTHONPATH=$(readlink -f "$(dirname -- "$0")"/../)
-PYTHONPATH=$PYTHONPATH python3 -m tellsticknet "$@"
+PYTHONPATH=$PYTHONPATH python3.7 -m tellsticknet "$@"
