@@ -17,7 +17,7 @@ TAG_SEP = ord(":")
 
 def _expect(condition):
     if not condition:
-        raise RuntimeError()
+        raise ValueError()
 
 
 def _encode_bytes(s):
@@ -370,7 +370,11 @@ A:fineoffset4:datai488029FF9Ass"
     if isinstance(packet, str):
         packet = packet.encode()
 
-    command, args = _decode_command(packet)
+    try:
+        command, args = _decode_command(packet)
+    except ValueError:
+        _LOGGER.error("Skipping malformed packet <%s>", packet)
+        return None
 
     if command == "zwaveinfo":
         _LOGGER.info("Got Z-Wave info packet")
