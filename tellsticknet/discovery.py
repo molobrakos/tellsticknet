@@ -137,7 +137,7 @@ if __name__ == "__main__":
     from sys import argv
 
     if argv[-1] == "mock":
-        asyncio.run(mock())
+        asyncio.run(mock())  # pylint: disable=no-member
     elif len(argv) == 2 and argv[1] is not None:
         controllers = list(discover(argv[-1]))
         pprint(controllers)

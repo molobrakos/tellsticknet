@@ -96,12 +96,12 @@ def _encode_dict(d):
     >>> _encode_dict([])
     Traceback (most recent call last):
         ...
-    RuntimeError
+    ValueError
 
     >>> _encode_dict(None)
     Traceback (most recent call last):
         ...
-    RuntimeError
+    ValueError
     """
     _expect(isinstance(d, dict))
 
@@ -159,12 +159,12 @@ def _decode_string(packet):
     >>> _decode_string(b'5:hell')
     Traceback (most recent call last):
         ...
-    RuntimeError
+    ValueError
 
     >>> _decode_string(b'hello')
     Traceback (most recent call last):
         ...
-    RuntimeError
+    ValueError
     """
     sep = packet.find(TAG_SEP)
     _expect(sep > 0)
