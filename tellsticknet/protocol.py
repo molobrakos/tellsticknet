@@ -291,7 +291,7 @@ def _decode(**packet):
         import importlib
 
         module = importlib.import_module(modname)
-        func = getattr(module, "decode")
+        func = module.decode
 
         # convert any _class=foo to class=foo
         packet = _fixup(func(packet.copy()))
