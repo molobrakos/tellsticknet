@@ -34,8 +34,8 @@ async def discover(ip=None, discover_all=False):
     )  # pylint: disable=not-an-iterable
     if discover_all:
         return (
-            make_controller(discovery_data)
-            async for discovery_data in discoverer
+            make_controller(discovery_data) async
+            for discovery_data in discoverer
         )  # pylint: disable=not-an-iterable
     try:
         return make_controller(

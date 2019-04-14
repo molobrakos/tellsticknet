@@ -395,8 +395,7 @@ class Device:
         if self.is_sensor:
             res.update(unit_of_measurement=self.unit)
         if self.is_command:
-            res.update(optimistic=self.optimistic,
-                       retain=True)
+            res.update(optimistic=self.optimistic, retain=True)
         if self.is_binary:
             res.update(payload_on=STATE_ON, payload_off=STATE_OFF)
         if self.is_light:
