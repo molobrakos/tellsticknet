@@ -382,7 +382,6 @@ class Device:
         res = dict(
             name=self.visible_name,
             state_topic=self.state_topic,
-            retain=True,
             availability_topic=self.availability_topic,
             payload_available=STATE_ONLINE,
             payload_not_available=STATE_OFFLINE,
@@ -396,7 +395,8 @@ class Device:
         if self.is_sensor:
             res.update(unit_of_measurement=self.unit)
         if self.is_command:
-            res.update(optimistic=self.optimistic)
+            res.update(optimistic=self.optimistic,
+                       retain=True)
         if self.is_binary:
             res.update(payload_on=STATE_ON, payload_off=STATE_OFF)
         if self.is_light:
