@@ -23,4 +23,4 @@ USER tellstick
 
 COPY . ./
 
-ENTRYPOINT ["dumb-init", "--", "./script/tellsticknet", "mqtt"]
+ENTRYPOINT ["dumb-init", "--", "python3", "-m", "tellsticknet", "mqtt"]
