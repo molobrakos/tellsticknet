@@ -296,11 +296,11 @@ class Device:
 
     @property
     def is_sensor(self):
-        return "sensorId" in self.entity
+        return self.component == "sensor"
 
     @property
     def is_command(self):
-        return not self.is_sensor
+        return self.component in ["switch", "light", "lock"]
 
     @property
     def is_binary(self):
