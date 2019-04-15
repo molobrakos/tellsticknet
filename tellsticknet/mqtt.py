@@ -226,7 +226,7 @@ class Device:
         if not self.is_recipient(packet):
             return False
 
-        if self.is_command:
+        if self.is_command or self.is_binary_sensor:
             method = method_for_str(packet["method"])
             state = STATES[method]
             await self.publish_availability()
@@ -295,6 +295,10 @@ class Device:
         return self.name
 
     @property
+    def is_binary_sensor(self):
+        return self.component == "binary_sensor"
+
+    @property
     def is_sensor(self):
         return self.component == "sensor"
 
@@ -320,6 +324,8 @@ class Device:
     def unique_id(self):
         if self.is_command:
             return ("command", self.component, self.name.lower())
+        elif self.is_binary_sensor:
+            return (self.component, self.name.lower())
         elif self.is_sensor:
             return ("sensor", self.name.lower(), self.quantity_name.lower())
         _LOGGER.error("Should not happen")
