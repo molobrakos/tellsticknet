@@ -226,6 +226,9 @@ class Device:
         if not self.is_recipient(packet):
             return False
 
+        if self.is_binary_sensor or self.sensor is not None:
+            await self.publish_discovery()
+
         if self.is_command or self.is_binary_sensor:
             method = method_for_str(packet["method"])
             state = STATES[method]
@@ -243,7 +246,6 @@ class Device:
                 for item in packet["data"]
                 if item["name"] == self.sensor
             )
-            await self.publish_discovery()  # imples availability
             await self.publish_state(state)
         else:
             # Delegate to aggregate of sensors
