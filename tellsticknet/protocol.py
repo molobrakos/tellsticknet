@@ -13,6 +13,11 @@ TAG_DICT = ord("h")
 TAG_LIST = ord("l")
 TAG_END = ord("s")
 TAG_SEP = ord(":")
+CMD_DELAY = "P"
+CMD_REP = "R"
+
+CMD_REPEAT_RF_TIMES = 4 #Number of packets the Tellstick Net will send
+CMD_REPEAT_RF_DELAY = 10 #Delay between packets in milliseconds
 
 
 def _expect(condition):
@@ -145,6 +150,9 @@ def encode_packet(command, **args):
     res = _encode_string(command)
     if args:
         res += _encode_dict(args)
+    if command == "send":
+        res += _encode_string(CMD_DELAY) + _encode_integer(CMD_REPEAT_RF_DELAY)
+        res += _encode_string(CMD_REP) + _encode_integer(CMD_REPEAT_RF_TIMES)
     return res
 
 
