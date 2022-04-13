@@ -68,7 +68,7 @@ Archive all packets, one file per day
 > ./script/dump | tee >(cronolog packets.%Y-%m-%d.log)
 ```
 
-Start MQTT gateway, forwarding all sensor readings to a MQTT server (where Home Assistant can be a subscriber), also receive any commands from the server (e.g. from Home Assistant)
+Start MQTT gateway, forwarding all sensor readings to a MQTT server (where Home Assistant can be a subscriber), also receive any commands from the server (e.g. from Home Assistant). Note that this requires a MQTT configuration file placed at ~/.config/mosquitto_pub
 ```bash
 > ./script/tellsticknet mqtt -vv
 ```
