@@ -1,0 +1,4 @@
+-h <hostname/ip>
+-p <port, Other values than 1883 will be treated as secure ports>
+-username <mqtt username>
+-pw <password>
