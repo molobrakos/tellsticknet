@@ -2,4 +2,4 @@ docopt
 setuptools
 requests
 pyyaml
-hbmqtt
+amqtt<0.11

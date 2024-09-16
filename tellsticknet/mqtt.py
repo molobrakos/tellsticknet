@@ -9,7 +9,7 @@ from time import time
 import tellsticknet.const as const
 from platform import node as hostname
 import string
-from hbmqtt.client import MQTTClient, ConnectException, ClientException
+from amqtt.client import MQTTClient, ConnectException, ClientException
 import asyncio
 
 
